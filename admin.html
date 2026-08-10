@@ -94,8 +94,8 @@
             </div>
             <form id="login-form">
                 <div class="form-group">
-                    <label for="admin-user">Usuário</label>
-                    <input type="text" id="admin-user" required placeholder="admin">
+                    <label for="admin-user">E-mail</label>
+                    <input type="email" id="admin-user" required placeholder="seu-email@exemplo.com">
                 </div>
                 <div class="form-group">
                     <label for="admin-password">Senha</label>
@@ -143,96 +143,124 @@
         </div>
     </div>
 
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             const form = document.getElementById('admin-form');
             const postsContainer = document.getElementById('posts-container');
+            const loginContainer = document.getElementById('login-container');
+            const dashboardContainer = document.getElementById('dashboard-container');
+            const loginForm = document.getElementById('login-form');
             
             // Check theme to keep it consistent
             if (localStorage.getItem('theme') === 'dark') {
                 document.body.classList.add('dark-mode');
             }
+            
+            if(SUPABASE_URL === 'SUA_SUPABASE_PROJECT_URL_AQUI') {
+                 alert('⚠️ Você precisa configurar as chaves do Supabase no arquivo supabase-config.js para o painel funcionar!');
+                 return;
+            }
 
-            const loginContainer = document.getElementById('login-container');
-            const dashboardContainer = document.getElementById('dashboard-container');
-            const loginForm = document.getElementById('login-form');
+            // --- FUNÇÕES DO SUPABASE ---
 
-            const loadPosts = () => {
-                const infoData = JSON.parse(localStorage.getItem('sr_info_data')) || [];
-                if (infoData.length === 0) {
+            const loadPosts = async () => {
+                postsContainer.innerHTML = '<p>Carregando...</p>';
+                const { data: infoData, error } = await supabase
+                    .from('posts')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error(error);
+                    postsContainer.innerHTML = '<p>Erro ao carregar postagens.</p>';
+                    return;
+                }
+
+                if (!infoData || infoData.length === 0) {
                     postsContainer.innerHTML = '<p>Nenhuma postagem cadastrada.</p>';
                     return;
                 }
 
-                postsContainer.innerHTML = infoData.map((item, index) => `
+                postsContainer.innerHTML = infoData.map(item => `
                     <div class="post-item">
                         <div>
                             <strong>[${item.type === 'promo' ? 'Promoção' : 'Aviso'}]</strong> ${item.title}
                         </div>
-                        <button class="delete-btn" onclick="deletePost(${index})"><i class="fas fa-trash"></i> Remover</button>
+                        <button class="delete-btn" onclick="deletePost('${item.id}')"><i class="fas fa-trash"></i> Remover</button>
                     </div>
                 `).join('');
             };
 
-            window.deletePost = (index) => {
+            window.deletePost = async (id) => {
                 if (confirm('Tem certeza que deseja remover esta postagem?')) {
-                    const infoData = JSON.parse(localStorage.getItem('sr_info_data')) || [];
-                    infoData.splice(index, 1);
-                    localStorage.setItem('sr_info_data', JSON.stringify(infoData));
-                    loadPosts();
+                    const { error } = await supabase.from('posts').delete().eq('id', id);
+                    if (error) {
+                        alert('Erro ao remover: ' + error.message);
+                    } else {
+                        loadPosts();
+                    }
                 }
             };
 
-            form.addEventListener('submit', (e) => {
+            form.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                
                 const type = document.getElementById('post-type').value;
                 const title = document.getElementById('post-title').value;
                 const content = document.getElementById('post-content').value;
                 
-                const infoData = JSON.parse(localStorage.getItem('sr_info_data')) || [];
+                const { error } = await supabase.from('posts').insert([{ type, title, content }]);
                 
-                infoData.push({ type, title, content });
-                localStorage.setItem('sr_info_data', JSON.stringify(infoData));
-                
-                form.reset();
-                loadPosts();
-                alert('Postagem adicionada com sucesso! Volte ao site para visualizar.');
+                if (error) {
+                    alert('Erro ao adicionar postagem: ' + error.message);
+                } else {
+                    form.reset();
+                    loadPosts();
+                    alert('Postagem adicionada com sucesso! Ela já está visível no site principal.');
+                }
             });
 
-            // Login Logic
-            if (sessionStorage.getItem('sr_admin_logged') === 'true') {
+            // --- AUTENTICAÇÃO COM SUPABASE ---
+
+            // Verifica se já está logado
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            if (session) {
                 loginContainer.style.display = 'none';
                 dashboardContainer.style.display = 'block';
                 loadPosts();
             }
 
-            loginForm.addEventListener('submit', (e) => {
+            // Login
+            loginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const user = document.getElementById('admin-user').value;
-                const pass = document.getElementById('admin-password').value;
+                const email = document.getElementById('admin-user').value;
+                const password = document.getElementById('admin-password').value;
                 
-                const savedPassword = localStorage.getItem('sr_admin_password') || 'admin123';
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
                 
-                if (user === 'admin' && pass === savedPassword) {
-                    sessionStorage.setItem('sr_admin_logged', 'true');
+                if (error) {
+                    alert('Erro no login: E-mail ou Senha incorretos!');
+                } else {
                     loginContainer.style.display = 'none';
                     dashboardContainer.style.display = 'block';
                     loadPosts();
-                } else {
-                    alert('Usuário ou senha incorretos!');
                 }
             });
 
-            // Change password logic
+            // Botão "Sair" (Logout)
             const btnChangePassword = document.getElementById('btn-change-password');
             if(btnChangePassword) {
-                btnChangePassword.addEventListener('click', () => {
-                    const newPassword = prompt('Digite a nova senha para o painel de administração:');
-                    if (newPassword && newPassword.trim().length > 0) {
-                        localStorage.setItem('sr_admin_password', newPassword.trim());
-                        alert('Senha alterada com sucesso! Na próxima vez que entrar, utilize a nova senha.');
-                    }
+                btnChangePassword.innerHTML = '<i class="fas fa-sign-out-alt"></i> Sair do Painel';
+                btnChangePassword.addEventListener('click', async () => {
+                    await supabase.auth.signOut();
+                    window.location.reload();
                 });
             }
         });

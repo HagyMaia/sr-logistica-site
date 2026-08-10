@@ -28,24 +28,44 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // 2. Dynamic Info Rendering (App Prep)
-    const renderInfo = () => {
+    const renderInfo = async () => {
         const container = document.getElementById('dynamic-content-container');
         if (!container) return;
         
-        const infoData = JSON.parse(localStorage.getItem('sr_info_data')) || [];
-        
-        if (infoData.length === 0) {
-            container.innerHTML = '<p style="grid-column: 1 / -1; color: var(--text-muted);">Nenhuma novidade no momento.</p>';
-            return;
+        if(SUPABASE_URL === 'SUA_SUPABASE_PROJECT_URL_AQUI') {
+             container.innerHTML = '<p style="grid-column: 1 / -1; color: var(--text-muted);">Mural em configuração (Aguardando chaves do Supabase).</p>';
+             return;
         }
 
-        container.innerHTML = infoData.map(item => `
-            <div class="service-card reveal">
-                <div class="service-icon"><i class="fas ${item.type === 'promo' ? 'fa-tag' : 'fa-bullhorn'}"></i></div>
-                <h3>${item.title}</h3>
-                <p>${item.content}</p>
-            </div>
-        `).join('');
+        try {
+            const { data: infoData, error } = await supabase
+                .from('posts')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            
+            if (!infoData || infoData.length === 0) {
+                container.innerHTML = '<p style="grid-column: 1 / -1; color: var(--text-muted);">Nenhuma novidade no momento.</p>';
+                return;
+            }
+
+            container.innerHTML = infoData.map(item => `
+                <div class="service-card reveal">
+                    <div class="service-icon"><i class="fas ${item.type === 'promo' ? 'fa-tag' : 'fa-bullhorn'}"></i></div>
+                    <h3>${item.title}</h3>
+                    <p>${item.content}</p>
+                </div>
+            `).join('');
+
+            // Re-aplica animação aos novos elementos
+            const newReveals = container.querySelectorAll('.reveal');
+            newReveals.forEach(reveal => revealOnScroll.observe(reveal));
+            
+        } catch (error) {
+            console.error('Erro ao buscar do Supabase:', error);
+            container.innerHTML = '<p style="grid-column: 1 / -1; color: var(--text-muted);">Erro ao carregar informações.</p>';
+        }
     };
     renderInfo();
 
