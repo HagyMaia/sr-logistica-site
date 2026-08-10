@@ -108,8 +108,11 @@
         <!-- Dashboard Container (Hidden by default) -->
         <div class="admin-container" id="dashboard-container" style="display: none;">
             <div class="admin-header">
-                <h2>Gerenciar Informações</h2>
-                <p>Modo de Edição Local (Preparado para App)</p>
+                <div>
+                    <h2>Gerenciar Informações</h2>
+                    <p>Modo de Edição Local (Preparado para App)</p>
+                </div>
+                <button id="btn-change-password" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.5rem 1rem;"><i class="fas fa-key"></i> Trocar Senha</button>
             </div>
 
             <form id="admin-form">
@@ -209,7 +212,9 @@
                 const user = document.getElementById('admin-user').value;
                 const pass = document.getElementById('admin-password').value;
                 
-                if (user === 'admin' && pass === 'admin123') {
+                const savedPassword = localStorage.getItem('sr_admin_password') || 'admin123';
+                
+                if (user === 'admin' && pass === savedPassword) {
                     sessionStorage.setItem('sr_admin_logged', 'true');
                     loginContainer.style.display = 'none';
                     dashboardContainer.style.display = 'block';
@@ -218,6 +223,18 @@
                     alert('Usuário ou senha incorretos!');
                 }
             });
+
+            // Change password logic
+            const btnChangePassword = document.getElementById('btn-change-password');
+            if(btnChangePassword) {
+                btnChangePassword.addEventListener('click', () => {
+                    const newPassword = prompt('Digite a nova senha para o painel de administração:');
+                    if (newPassword && newPassword.trim().length > 0) {
+                        localStorage.setItem('sr_admin_password', newPassword.trim());
+                        alert('Senha alterada com sucesso! Na próxima vez que entrar, utilize a nova senha.');
+                    }
+                });
+            }
         });
     </script>
 </body>
