@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Admin | SR Logística</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome (Ícones) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .admin-container {
+            max-width: 800px;
+            margin: 6rem auto;
+            padding: 2rem;
+            background: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+        }
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid var(--text-muted);
+            border-radius: 4px;
+            font-family: inherit;
+        }
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        .posts-list {
+            margin-top: 3rem;
+        }
+        .post-item {
+            background: var(--bg-light);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .delete-btn:hover {
+            background: #c82333;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Navbar (Sticky) -->
+    <nav class="navbar">
+        <div class="container nav-container">
+            <div class="logo">SR Logística Admin</div>
+            <ul class="nav-links">
+                <li><a href="index.html"><i class="fas fa-arrow-left"></i> Voltar ao Site</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="admin-container">
+            <div class="admin-header">
+                <h2>Gerenciar Informações</h2>
+                <p>Modo de Edição Local (Preparado para App)</p>
+            </div>
+
+            <form id="admin-form">
+                <div class="form-group">
+                    <label for="post-type">Tipo de Postagem</label>
+                    <select id="post-type" required>
+                        <option value="promo">Promoção (Ex: Desconto em corrida)</option>
+                        <option value="info">Aviso (Ex: Novo veículo na frota)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="post-title">Título</label>
+                    <input type="text" id="post-title" required placeholder="Ex: Oferta Especial 10% OFF">
+                </div>
+                <div class="form-group">
+                    <label for="post-content">Conteúdo</label>
+                    <textarea id="post-content" required placeholder="Descreva os detalhes aqui..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Adicionar Postagem</button>
+            </form>
+
+            <div class="posts-list">
+                <h3>Postagens Atuais</h3>
+                <div id="posts-container">
+                    <!-- Posts carregados via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('admin-form');
+            const postsContainer = document.getElementById('posts-container');
+            
+            // Check theme to keep it consistent
+            if (localStorage.getItem('theme') === 'dark') {
+                document.body.classList.add('dark-mode');
+            }
+
+            const loadPosts = () => {
+                const infoData = JSON.parse(localStorage.getItem('sr_info_data')) || [];
+                if (infoData.length === 0) {
+                    postsContainer.innerHTML = '<p>Nenhuma postagem cadastrada.</p>';
+                    return;
+                }
+
+                postsContainer.innerHTML = infoData.map((item, index) => `
+                    <div class="post-item">
+                        <div>
+                            <strong>[${item.type === 'promo' ? 'Promoção' : 'Aviso'}]</strong> ${item.title}
+                        </div>
+                        <button class="delete-btn" onclick="deletePost(${index})"><i class="fas fa-trash"></i> Remover</button>
+                    </div>
+                `).join('');
+            };
+
+            window.deletePost = (index) => {
+                if (confirm('Tem certeza que deseja remover esta postagem?')) {
+                    const infoData = JSON.parse(localStorage.getItem('sr_info_data')) || [];
+                    infoData.splice(index, 1);
+                    localStorage.setItem('sr_info_data', JSON.stringify(infoData));
+                    loadPosts();
+                }
+            };
+
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                const type = document.getElementById('post-type').value;
+                const title = document.getElementById('post-title').value;
+                const content = document.getElementById('post-content').value;
+                
+                const infoData = JSON.parse(localStorage.getItem('sr_info_data')) || [];
+                
+                infoData.push({ type, title, content });
+                localStorage.setItem('sr_info_data', JSON.stringify(infoData));
+                
+                form.reset();
+                loadPosts();
+                alert('Postagem adicionada com sucesso! Volte ao site para visualizar.');
+            });
+
+            loadPosts();
+        });
+    </script>
+</body>
+</html>

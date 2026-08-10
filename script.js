@@ -27,7 +27,29 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('theme', theme);
     });
 
-    // 2. Scroll Reveal Animation using Intersection Observer
+    // 2. Dynamic Info Rendering (App Prep)
+    const renderInfo = () => {
+        const container = document.getElementById('dynamic-content-container');
+        if (!container) return;
+        
+        const infoData = JSON.parse(localStorage.getItem('sr_info_data')) || [];
+        
+        if (infoData.length === 0) {
+            container.innerHTML = '<p style="grid-column: 1 / -1; color: var(--text-muted);">Nenhuma novidade no momento.</p>';
+            return;
+        }
+
+        container.innerHTML = infoData.map(item => `
+            <div class="service-card reveal">
+                <div class="service-icon"><i class="fas ${item.type === 'promo' ? 'fa-tag' : 'fa-bullhorn'}"></i></div>
+                <h3>${item.title}</h3>
+                <p>${item.content}</p>
+            </div>
+        `).join('');
+    };
+    renderInfo();
+
+    // 3. Scroll Reveal Animation using Intersection Observer
     const reveals = document.querySelectorAll('.reveal');
 
     const revealOptions = {

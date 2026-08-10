@@ -23,6 +23,7 @@
                 <li><a href="#sobre">Quem Somos</a></li>
                 <li><a href="#servicos">Serviços</a></li>
                 <li><a href="#contato" class="btn btn-outline">Fale Conosco</a></li>
+                <li><a href="admin.html" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.9rem;"><i class="fas fa-lock"></i> Admin</a></li>
                 <li>
                     <button id="theme-toggle" class="theme-toggle" aria-label="Alternar Modo Escuro/Claro">
                         <i class="fas fa-moon"></i>
@@ -60,8 +61,8 @@
                     empresa foque no seu negócio.</p>
             </div>
             <div class="split-image reveal">
-                <img src="assets/img/sobre.png"
-                    alt="Motorista profissional da SR Logística abrindo porta de veículo executivo">
+                <img src="assets/img/sobre_taxi.png"
+                    alt="Táxi executivo branco padrão corporativo do Brasil">
                 <div class="image-accent"></div>
             </div>
         </div>
@@ -108,8 +109,20 @@
         </div>
     </section>
 
+    <!-- Promoções e Avisos (Dinâmico via LocalStorage) -->
+    <section id="informacoes" class="section">
+        <div class="container text-center">
+            <h2 class="section-title center reveal">Mural de Informações</h2>
+            <p class="section-description reveal">Fique por dentro das nossas novidades e promoções (Em breve App).</p>
+            
+            <div class="services-grid" id="dynamic-content-container">
+                <!-- O conteúdo dinâmico será renderizado aqui via JavaScript -->
+            </div>
+        </div>
+    </section>
+
     <!-- Contato -->
-    <section id="contato" class="section">
+    <section id="contato" class="section bg-light">
         <div class="container">
             <div class="contact-box reveal">
                 <h2 class="section-title center">Fale Conosco</h2>
