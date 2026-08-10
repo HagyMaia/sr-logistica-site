@@ -3,8 +3,8 @@
 // 2. Copie a Project URL e cole na variável SUPABASE_URL
 // 3. Copie a anon / public key e cole na variável SUPABASE_KEY
 
-const SUPABASE_URL = 'SUA_SUPABASE_PROJECT_URL_AQUI';
-const SUPABASE_KEY = 'SUA_SUPABASE_ANON_KEY_AQUI';
+const SUPABASE_URL = 'https://lvdplhnbkkmlcxeuqhdo.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_CoC8vHLwAQ3kGsXwWBlaoA_4LB5SzsK';
 
 // Inicializa o cliente do Supabase
 // (O objeto supabase é disponibilizado globalmente pelo CDN carregado no HTML)
