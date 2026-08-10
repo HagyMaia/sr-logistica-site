@@ -17,42 +17,51 @@
             max-width: 800px;
             margin: 6rem auto;
             padding: 2rem;
-            background: var(--card-bg);
+            background: var(--card-bg, #ffffff);
             border-radius: 8px;
-            box-shadow: var(--shadow);
+            box-shadow: var(--shadow, 0 4px 6px rgba(0, 0, 0, 0.1));
         }
+
         .admin-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 2rem;
             padding-bottom: 1rem;
-            border-bottom: 1px solid rgba(0,0,0,0.1);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
         }
+
         .form-group {
             margin-bottom: 1.5rem;
         }
+
         .form-group label {
             display: block;
             margin-bottom: 0.5rem;
             font-weight: 600;
         }
-        .form-group input, .form-group select, .form-group textarea {
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
             width: 100%;
             padding: 0.8rem;
-            border: 1px solid var(--text-muted);
+            border: 1px solid #ccc;
             border-radius: 4px;
             font-family: inherit;
         }
+
         .form-group textarea {
             resize: vertical;
             min-height: 100px;
         }
+
         .posts-list {
             margin-top: 3rem;
         }
+
         .post-item {
-            background: var(--bg-light);
+            background: var(--bg-light, #f8f9fa);
             padding: 1rem;
             margin-bottom: 1rem;
             border-radius: 4px;
@@ -60,6 +69,7 @@
             justify-content: space-between;
             align-items: center;
         }
+
         .delete-btn {
             background: #dc3545;
             color: white;
@@ -68,6 +78,7 @@
             border-radius: 4px;
             cursor: pointer;
         }
+
         .delete-btn:hover {
             background: #c82333;
         }
@@ -89,8 +100,10 @@
         <!-- Login Container -->
         <div class="admin-container" id="login-container">
             <div class="admin-header">
-                <h2>Acesso Restrito</h2>
-                <p>Faça login para gerenciar as informações.</p>
+                <div>
+                    <h2>Acesso Restrito</h2>
+                    <p>Faça login para gerenciar as informações.</p>
+                </div>
             </div>
             <form id="login-form">
                 <div class="form-group">
@@ -103,19 +116,22 @@
                 </div>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem;">
                     <button type="submit" class="btn btn-primary"><i class="fas fa-sign-in-alt"></i> Entrar</button>
-                    <a href="#" id="forgot-password" style="color: var(--primary-light); font-size: 0.9rem; text-decoration: none;">Esqueceu a senha?</a>
+                    <a href="#" id="forgot-password"
+                        style="color: var(--primary-light, #007bff); font-size: 0.9rem; text-decoration: none;">Esqueceu
+                        a senha?</a>
                 </div>
             </form>
         </div>
 
-        <!-- Dashboard Container (Hidden by default) -->
+        <!-- Dashboard Container (Hidden por padrão) -->
         <div class="admin-container" id="dashboard-container" style="display: none;">
             <div class="admin-header">
                 <div>
                     <h2>Gerenciar Informações</h2>
-                    <p>Modo de Edição Local (Preparado para App)</p>
+                    <p>Painel de Controle Integrado ao Supabase</p>
                 </div>
-                <button id="btn-change-password" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.5rem 1rem;"><i class="fas fa-key"></i> Trocar Senha</button>
+                <button id="btn-logout" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.5rem 1rem;"><i
+                        class="fas fa-sign-out-alt"></i> Sair do Painel</button>
             </div>
 
             <form id="admin-form">
@@ -146,40 +162,41 @@
         </div>
     </div>
 
-    <!-- Supabase -->
+    <!-- Supabase JS SDK v2 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-config.js"></script>
 
     <script>
+        // CONFIGURAÇÃO DO SUPABASE
+        const SUPABASE_URL = 'https://lvdplhnbkmlcxeuqhdo.supabase.co'; // Extraída do seu painel
+        const SUPABASE_ANON_KEY = 'SUA_CHAVE_ANON_PUBLIC_KEY'; // Obtenha em: Project Settings -> API -> anon public key
+
+        // Inicializando a instância do Supabase
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
         document.addEventListener('DOMContentLoaded', async () => {
             const form = document.getElementById('admin-form');
             const postsContainer = document.getElementById('posts-container');
             const loginContainer = document.getElementById('login-container');
             const dashboardContainer = document.getElementById('dashboard-container');
             const loginForm = document.getElementById('login-form');
-            
-            // Check theme to keep it consistent
+            const btnLogout = document.getElementById('btn-logout');
+
+            // Verifica o tema escuro
             if (localStorage.getItem('theme') === 'dark') {
                 document.body.classList.add('dark-mode');
             }
-            
-            if(SUPABASE_URL === 'SUA_SUPABASE_PROJECT_URL_AQUI') {
-                 alert('⚠️ Você precisa configurar as chaves do Supabase no arquivo supabase-config.js para o painel funcionar!');
-                 return;
-            }
 
-            // --- FUNÇÕES DO SUPABASE ---
-
+            // --- CARREGAR POSTS ---
             const loadPosts = async () => {
                 postsContainer.innerHTML = '<p>Carregando...</p>';
-                const { data: infoData, error } = await supabase
+                const { data: infoData, error } = await supabaseClient
                     .from('posts')
                     .select('*')
                     .order('created_at', { ascending: false });
 
                 if (error) {
-                    console.error(error);
-                    postsContainer.innerHTML = '<p>Erro ao carregar postagens.</p>';
+                    console.error('Erro ao buscar posts:', error);
+                    postsContainer.innerHTML = `<p style="color:red;">Erro ao carregar postagens: ${error.message}</p>`;
                     return;
                 }
 
@@ -198,9 +215,10 @@
                 `).join('');
             };
 
+            // --- DELETAR POST ---
             window.deletePost = async (id) => {
                 if (confirm('Tem certeza que deseja remover esta postagem?')) {
-                    const { error } = await supabase.from('posts').delete().eq('id', id);
+                    const { error } = await supabaseClient.from('posts').delete().eq('id', id);
                     if (error) {
                         alert('Erro ao remover: ' + error.message);
                     } else {
@@ -209,45 +227,45 @@
                 }
             };
 
+            // --- CRIAR POST ---
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const type = document.getElementById('post-type').value;
                 const title = document.getElementById('post-title').value;
                 const content = document.getElementById('post-content').value;
-                
-                const { error } = await supabase.from('posts').insert([{ type, title, content }]);
-                
+
+                const { error } = await supabaseClient.from('posts').insert([{ type, title, content }]);
+
                 if (error) {
                     alert('Erro ao adicionar postagem: ' + error.message);
                 } else {
                     form.reset();
                     loadPosts();
-                    alert('Postagem adicionada com sucesso! Ela já está visível no site principal.');
+                    alert('Postagem adicionada com sucesso!');
                 }
             });
 
-            // --- AUTENTICAÇÃO COM SUPABASE ---
+            // --- AUTENTICAÇÃO ---
 
-            // Verifica se já está logado
-            const { data: { session } } = await supabase.auth.getSession();
-            
+            // Verifica sessão do usuário
+            const { data: { session } } = await supabaseClient.auth.getSession();
             if (session) {
                 loginContainer.style.display = 'none';
                 dashboardContainer.style.display = 'block';
                 loadPosts();
             }
 
-            // Login
+            // Ação de Login
             loginForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const email = document.getElementById('admin-user').value;
                 const password = document.getElementById('admin-password').value;
-                
-                const { data, error } = await supabase.auth.signInWithPassword({
+
+                const { data, error } = await supabaseClient.auth.signInWithPassword({
                     email: email,
                     password: password
                 });
-                
+
                 if (error) {
                     alert('Erro no login: ' + error.message);
                 } else {
@@ -257,9 +275,9 @@
                 }
             });
 
-            // Forgot Password
+            // Recuperação de Senha
             const forgotPasswordLink = document.getElementById('forgot-password');
-            if(forgotPasswordLink) {
+            if (forgotPasswordLink) {
                 forgotPasswordLink.addEventListener('click', async (e) => {
                     e.preventDefault();
                     const email = document.getElementById('admin-user').value;
@@ -267,29 +285,28 @@
                         alert('Por favor, digite seu e-mail no campo acima primeiro.');
                         return;
                     }
-                    
-                    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+
+                    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
                         redirectTo: window.location.origin + '/admin.html',
                     });
-                    
+
                     if (error) {
-                        alert('Erro ao enviar e-mail de recuperação: ' + error.message);
+                        alert('Erro ao enviar e-mail: ' + error.message);
                     } else {
-                        alert('Se o e-mail estiver cadastrado, você receberá um link para redefinir a senha.');
+                        alert('Instruções para redefinição enviadas para o seu e-mail!');
                     }
                 });
             }
 
-            // Botão "Sair" (Logout)
-            const btnChangePassword = document.getElementById('btn-change-password');
-            if(btnChangePassword) {
-                btnChangePassword.innerHTML = '<i class="fas fa-sign-out-alt"></i> Sair do Painel';
-                btnChangePassword.addEventListener('click', async () => {
-                    await supabase.auth.signOut();
+            // Logout
+            if (btnLogout) {
+                btnLogout.addEventListener('click', async () => {
+                    await supabaseClient.auth.signOut();
                     window.location.reload();
                 });
             }
         });
     </script>
 </body>
+
 </html>

@@ -23,7 +23,8 @@
                 <li><a href="#sobre">Quem Somos</a></li>
                 <li><a href="#servicos">Serviços</a></li>
                 <li><a href="#contato" class="btn btn-outline">Fale Conosco</a></li>
-                <li><a href="admin.html" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.9rem;"><i class="fas fa-lock"></i> Admin</a></li>
+                <li><a href="admin.html" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.9rem;"><i
+                            class="fas fa-lock"></i> Admin</a></li>
                 <li>
                     <button id="theme-toggle" class="theme-toggle" aria-label="Alternar Modo Escuro/Claro">
                         <i class="fas fa-moon"></i>
@@ -61,8 +62,7 @@
                     empresa foque no seu negócio.</p>
             </div>
             <div class="split-image reveal">
-                <img src="assets/img/sobre_taxi.png"
-                    alt="Táxi executivo branco padrão corporativo do Brasil">
+                <img src="assets/img/sobre_taxi.png" alt="Táxi executivo branco padrão corporativo do Brasil">
                 <div class="image-accent"></div>
             </div>
         </div>
@@ -114,7 +114,7 @@
         <div class="container text-center">
             <h2 class="section-title center reveal">Mural de Informações</h2>
             <p class="section-description reveal">Fique por dentro das nossas novidades e promoções (Em breve App).</p>
-            
+
             <div class="services-grid" id="dynamic-content-container">
                 <!-- O conteúdo dinâmico será renderizado aqui via JavaScript -->
             </div>
@@ -154,6 +154,15 @@
             </div>
         </div>
     </section>
+    <!-- Seção de Postagens / Avisos -->
+    <section id="novidades" class="section-news">
+        <div class="container">
+            <h2>Novidades e Promoções</h2>
+            <div id="posts-feed" class="posts-grid">
+                <p class="loading-text">Carregando novidades...</p>
+            </div>
+        </div>
+    </section>
 
     <!-- Rodapé -->
     <footer>
@@ -167,6 +176,60 @@
     <script src="supabase-config.js"></script>
     <!-- Scripts -->
     <script src="script.js"></script>
+    <!-- Supabase JS SDK v2 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        // Configurações do Supabase
+        const SUPABASE_URL = 'https://lvdplhnbkmlcxeuqhdo.supabase.co';
+        const SUPABASE_ANON_KEY = 'SUA_CHAVE_ANON_PUBLIC_KEY'; // Subtitua pela sua anon public key
+
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const postsContainer = document.getElementById('posts-feed');
+
+            if (!postsContainer) return;
+
+            try {
+                // Busca os posts ordenados por data de criação (mais recentes primeiro)
+                const { data: posts, error } = await supabaseClient
+                    .from('posts')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) {
+                    console.error('Erro ao buscar novidades:', error);
+                    postsContainer.innerHTML = '<p>Erro ao carregar as novidades no momento.</p>';
+                    return;
+                }
+
+                if (!posts || posts.length === 0) {
+                    postsContainer.innerHTML = '<p>Nenhuma novidade ou promoção no momento.</p>';
+                    return;
+                }
+
+                // Injeta os cards das postagens no DOM
+                postsContainer.innerHTML = posts.map(post => {
+                    const isPromo = post.type === 'promo';
+                    return `
+                  <article class="post-card ${isPromo ? 'promo-card' : 'info-card'}">
+                      <div class="post-badge">${isPromo ? '🏷️ Promoção' : '📢 Aviso'}</div>
+                      <h3 class="post-title">${post.title}</h3>
+                      <p class="post-content">${post.content}</p>
+                      <small class="post-date">
+                          ${new Date(post.created_at).toLocaleDateString('pt-BR')}
+                      </small>
+                  </article>
+              `;
+                }).join('');
+
+            } catch (err) {
+                console.error('Erro inesperado:', err);
+                postsContainer.innerHTML = '<p>Ocorreu um erro ao carregar os dados.</p>';
+            }
+        });
+    </script>
 </body>
 
 </html>
