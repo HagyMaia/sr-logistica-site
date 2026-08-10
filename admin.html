@@ -99,9 +99,12 @@
                 </div>
                 <div class="form-group">
                     <label for="admin-password">Senha</label>
-                    <input type="password" id="admin-password" required placeholder="admin123">
+                    <input type="password" id="admin-password" required placeholder="Sua senha">
                 </div>
-                <button type="submit" class="btn btn-primary"><i class="fas fa-sign-in-alt"></i> Entrar</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem;">
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-sign-in-alt"></i> Entrar</button>
+                    <a href="#" id="forgot-password" style="color: var(--primary-light); font-size: 0.9rem; text-decoration: none;">Esqueceu a senha?</a>
+                </div>
             </form>
         </div>
 
@@ -253,6 +256,29 @@
                     loadPosts();
                 }
             });
+
+            // Forgot Password
+            const forgotPasswordLink = document.getElementById('forgot-password');
+            if(forgotPasswordLink) {
+                forgotPasswordLink.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    const email = document.getElementById('admin-user').value;
+                    if (!email) {
+                        alert('Por favor, digite seu e-mail no campo acima primeiro.');
+                        return;
+                    }
+                    
+                    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                        redirectTo: window.location.origin + '/admin.html',
+                    });
+                    
+                    if (error) {
+                        alert('Erro ao enviar e-mail de recuperação: ' + error.message);
+                    } else {
+                        alert('Se o e-mail estiver cadastrado, você receberá um link para redefinir a senha.');
+                    }
+                });
+            }
 
             // Botão "Sair" (Logout)
             const btnChangePassword = document.getElementById('btn-change-password');
