@@ -86,7 +86,27 @@
     </nav>
 
     <div class="container">
-        <div class="admin-container">
+        <!-- Login Container -->
+        <div class="admin-container" id="login-container">
+            <div class="admin-header">
+                <h2>Acesso Restrito</h2>
+                <p>Faça login para gerenciar as informações.</p>
+            </div>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="admin-user">Usuário</label>
+                    <input type="text" id="admin-user" required placeholder="admin">
+                </div>
+                <div class="form-group">
+                    <label for="admin-password">Senha</label>
+                    <input type="password" id="admin-password" required placeholder="admin123">
+                </div>
+                <button type="submit" class="btn btn-primary"><i class="fas fa-sign-in-alt"></i> Entrar</button>
+            </form>
+        </div>
+
+        <!-- Dashboard Container (Hidden by default) -->
+        <div class="admin-container" id="dashboard-container" style="display: none;">
             <div class="admin-header">
                 <h2>Gerenciar Informações</h2>
                 <p>Modo de Edição Local (Preparado para App)</p>
@@ -129,6 +149,10 @@
             if (localStorage.getItem('theme') === 'dark') {
                 document.body.classList.add('dark-mode');
             }
+
+            const loginContainer = document.getElementById('login-container');
+            const dashboardContainer = document.getElementById('dashboard-container');
+            const loginForm = document.getElementById('login-form');
 
             const loadPosts = () => {
                 const infoData = JSON.parse(localStorage.getItem('sr_info_data')) || [];
@@ -173,7 +197,27 @@
                 alert('Postagem adicionada com sucesso! Volte ao site para visualizar.');
             });
 
-            loadPosts();
+            // Login Logic
+            if (sessionStorage.getItem('sr_admin_logged') === 'true') {
+                loginContainer.style.display = 'none';
+                dashboardContainer.style.display = 'block';
+                loadPosts();
+            }
+
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const user = document.getElementById('admin-user').value;
+                const pass = document.getElementById('admin-password').value;
+                
+                if (user === 'admin' && pass === 'admin123') {
+                    sessionStorage.setItem('sr_admin_logged', 'true');
+                    loginContainer.style.display = 'none';
+                    dashboardContainer.style.display = 'block';
+                    loadPosts();
+                } else {
+                    alert('Usuário ou senha incorretos!');
+                }
+            });
         });
     </script>
 </body>
