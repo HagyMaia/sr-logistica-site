@@ -249,7 +249,7 @@
                 });
                 
                 if (error) {
-                    alert('Erro no login: E-mail ou Senha incorretos!');
+                    alert('Erro no login: ' + error.message);
                 } else {
                     loginContainer.style.display = 'none';
                     dashboardContainer.style.display = 'block';
