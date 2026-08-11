@@ -48,7 +48,11 @@
             }
             ui.postsContainer.innerHTML = data.map(item => `
                 <article class="post-item">
-                    <div><strong>[${item.type === 'promo' ? 'Promoção' : 'Aviso'}]</strong> <span>${escapeHTML(item.title)}</span></div>
+                    <div>
+                        <strong>[${item.type === 'promo' ? 'Promoção' : 'Aviso'}]</strong> 
+                        <span>${escapeHTML(item.title)}</span>
+                        ${item.image_url ? '<br><small style="color: green;"><i class="fas fa-image"></i> Com imagem</small>' : ''}
+                    </div>
                     <button class="delete-btn" data-id="${item.id}" aria-label="Remover postagem"><i class="fas fa-trash"></i> Remover</button>
                 </article>
             `).join('');
@@ -75,21 +79,45 @@
         const type = document.getElementById('post-type').value;
         const title = document.getElementById('post-title').value.trim();
         const content = document.getElementById('post-content').value.trim();
+        const imageInput = document.getElementById('post-image');
 
-        if (!title || !content) return showFeedback(ui.postFeedback, 'Preencha todos os campos.', 'error');
+        if (!title || !content) return showFeedback(ui.postFeedback, 'Preencha todos os campos obrigatórios.', 'error');
 
         const btnAdd = document.getElementById('btn-add-post');
         btnAdd.disabled = true;
-        btnAdd.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adicionando...';
+        btnAdd.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
 
         try {
-            const { error } = await supabaseClient.from('posts').insert([{ type, title, content }]);
-            if (error) throw error;
+            let imageUrl = null;
+
+            // Faz o upload da imagem se houver uma selecionada
+            if (imageInput && imageInput.files && imageInput.files.length > 0) {
+                btnAdd.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando Imagem...';
+                const file = imageInput.files[0];
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+                const filePath = `public/${fileName}`;
+
+                const { error: uploadError } = await supabaseClient.storage.from('post-images').upload(filePath, file);
+                if (uploadError) throw new Error('Erro no upload da imagem: ' + uploadError.message);
+
+                const { data: { publicUrl } } = supabaseClient.storage.from('post-images').getPublicUrl(filePath);
+                imageUrl = publicUrl;
+            }
+
+            // Salva os dados no banco
+            const { error: dbError } = await supabaseClient.from('posts').insert([{ type, title, content, image_url: imageUrl }]);
+            if (dbError) throw new Error('Erro ao salvar no banco: ' + dbError.message);
+
             ui.adminForm.reset();
             showFeedback(ui.postFeedback, 'Postagem adicionada com sucesso!', 'success');
             loadPosts();
-        } catch (error) { showFeedback(ui.postFeedback, 'Erro ao adicionar postagem.', 'error'); }
-        finally { btnAdd.disabled = false; btnAdd.innerHTML = '<i class="fas fa-plus"></i> Adicionar Postagem'; }
+        } catch (error) {
+            showFeedback(ui.postFeedback, error.message, 'error');
+        } finally {
+            btnAdd.disabled = false;
+            btnAdd.innerHTML = '<i class="fas fa-plus"></i> Adicionar Postagem';
+        }
     };
 
     const escapeHTML = (str) => { const div = document.createElement('div'); div.textContent = str; return div.innerHTML; };
