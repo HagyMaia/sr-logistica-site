@@ -167,10 +167,62 @@
                 style="width: 100%; height: auto; max-height: 350px; object-fit: cover; margin-bottom: 15px; border-radius: 8px;">
 
             <h2 id="modal-title" style="margin-bottom: 10px; color: #111; font-size: 1.5rem;">Carregando...</h2>
-            <p id="modal-text" style="color: #444; font-size: 1rem; margin: 0;"></p>
+
+            <!-- Texto do modal com uma margem extra embaixo para dar espaço ao botão -->
+            <p id="modal-text" style="color: #444; font-size: 1rem; margin: 0 0 20px 0;"></p>
+
+            <!-- Botão do WhatsApp do Dono -->
+            <a href="https://wa.me/559291306160" target="_blank"
+                style="background-color: #25D366; color: white; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; box-shadow: 0 4px 6px rgba(37, 211, 102, 0.3);">
+                <i class="fab fa-whatsapp" style="font-size: 1.3rem;"></i> Falar no WhatsApp
+            </a>
         </div>
     </div>
+    <!-- ======================================= -->
+    <!-- BOTÃO FLUTUANTE DO WHATSAPP             -->
+    <!-- ======================================= -->
+    <style>
+        .whatsapp-float {
+            position: fixed;
+            width: 60px;
+            height: 60px;
+            bottom: 40px;
+            right: 40px;
+            background-color: #25d366;
+            color: #FFF;
+            border-radius: 50px;
+            text-align: center;
+            font-size: 35px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
 
+        .whatsapp-float:hover {
+            background-color: #20b858;
+            transform: scale(1.1);
+            color: #FFF;
+        }
+
+        /* Fica um pouco menor na tela do celular para não atrapalhar a leitura */
+        @media (max-width: 768px) {
+            .whatsapp-float {
+                width: 50px;
+                height: 50px;
+                bottom: 20px;
+                right: 20px;
+                font-size: 28px;
+            }
+        }
+    </style>
+    <a href="https://wa.me/559291306160" class="whatsapp-float" target="_blank" aria-label="Fale conosco no WhatsApp">
+        <i class="fab fa-whatsapp"></i>
+    </a>
+    <!-- ======================================= -->
     <!-- Rodapé -->
     <footer>
         <div class="container">
