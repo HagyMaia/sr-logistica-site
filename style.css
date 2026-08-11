@@ -604,4 +604,30 @@ footer {
         grid-template-columns: 1fr;
         gap: 1.5rem;
     }
+
+    /* =========================================
+   AJUSTES DAS IMAGENS (MODAL E FEED)
+========================================= */
+
+    /* Controla o tamanho da imagem dentro do Pop-up */
+    .modal-img {
+        width: 100%;
+        /* Faz a imagem ocupar no máximo a largura do pop-up */
+        max-height: 350px;
+        /* Limita a altura para não passar da tela do PC/Celular */
+        object-fit: contain;
+        /* Garante que a imagem não seja cortada e apareça inteira */
+        border-radius: 8px;
+        margin-bottom: 15px;
+    }
+
+    /* Controla o tamanho da imagem na lista lá no fim do site */
+    .feed-img {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        /* Corta as bordas suavemente para manter o padrão de tamanho nos cards */
+        border-radius: 8px;
+        margin-bottom: 10px;
+    }
 }
