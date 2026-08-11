@@ -55,7 +55,6 @@
                 <p>Nossa atuação é fortemente focada no segmento corporativo. Oferecemos soluções personalizadas para
                     atender às necessidades de indústrias e fábricas que buscam garantir o deslocamento eficiente de
                     seus colaboradores.</p>
-
                 <h3 class="subtitle">Nosso Propósito</h3>
                 <p>Temos como principal objetivo contribuir para a produtividade e o bem-estar das suas equipes.
                     Asseguramos deslocamentos confiáveis, reduzindo atrasos operacionais para que a gestão da sua
@@ -73,7 +72,6 @@
         <div class="container text-center">
             <h2 class="section-title center reveal">Nossos Serviços</h2>
             <p class="section-description reveal">Soluções sob medida para otimizar o fluxo da sua operação.</p>
-
             <div class="services-grid">
                 <div class="service-card reveal">
                     <div class="service-icon"><i class="fas fa-bus"></i></div>
@@ -105,18 +103,6 @@
                     <h3>Manutenção Preventiva</h3>
                     <p>Frota moderna e segura, com motoristas treinados e profissionais.</p>
                 </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Promoções e Avisos (Dinâmico via LocalStorage) -->
-    <section id="informacoes" class="section">
-        <div class="container text-center">
-            <h2 class="section-title center reveal">Mural de Informações</h2>
-            <p class="section-description reveal">Fique por dentro das nossas novidades e promoções (Em breve App).</p>
-
-            <div class="services-grid" id="dynamic-content-container">
-                <!-- O conteúdo dinâmico será renderizado aqui via JavaScript -->
             </div>
         </div>
     </section>
@@ -154,83 +140,18 @@
             </div>
         </div>
     </section>
+
     <!-- Seção de Postagens / Avisos -->
     <section id="novidades" class="section-news">
         <div class="container">
-            <h2>Novidades e Promoções</h2>
-            <div id="posts-feed" class="posts-grid">
+            <h2 class="section-title center reveal">Novidades e Promoções</h2>
+            <div id="posts-feed" class="services-grid">
                 <p class="loading-text">Carregando novidades...</p>
             </div>
         </div>
     </section>
 
-    <!-- Rodapé -->
-    <footer>
-        <div class="container">
-            <p>&copy; 2026 SR Logística e Transporte. Todos os direitos reservados.</p>
-        </div>
-    </footer>
-
-    <!-- Supabase -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-config.js"></script>
-    <!-- Scripts -->
-    <script src="script.js"></script>
-    <!-- Supabase JS SDK v2 -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-    <script>
-        // Configurações do Supabase
-        const SUPABASE_URL = 'https://lvdplhnbkmlcxeuqhdo.supabase.co';
-        const SUPABASE_ANON_KEY = 'SUA_CHAVE_ANON_PUBLIC_KEY'; // Subtitua pela sua anon public key
-
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        document.addEventListener('DOMContentLoaded', async () => {
-            const postsContainer = document.getElementById('posts-feed');
-
-            if (!postsContainer) return;
-
-            try {
-                // Busca os posts ordenados por data de criação (mais recentes primeiro)
-                const { data: posts, error } = await supabaseClient
-                    .from('posts')
-                    .select('*')
-                    .order('created_at', { ascending: false });
-
-                if (error) {
-                    console.error('Erro ao buscar novidades:', error);
-                    postsContainer.innerHTML = '<p>Erro ao carregar as novidades no momento.</p>';
-                    return;
-                }
-
-                if (!posts || posts.length === 0) {
-                    postsContainer.innerHTML = '<p>Nenhuma novidade ou promoção no momento.</p>';
-                    return;
-                }
-
-                // Injeta os cards das postagens no DOM
-                postsContainer.innerHTML = posts.map(post => {
-                    const isPromo = post.type === 'promo';
-                    return `
-                  <article class="post-card ${isPromo ? 'promo-card' : 'info-card'}">
-                      <div class="post-badge">${isPromo ? '🏷️ Promoção' : '📢 Aviso'}</div>
-                      <h3 class="post-title">${post.title}</h3>
-                      <p class="post-content">${post.content}</p>
-                      <small class="post-date">
-                          ${new Date(post.created_at).toLocaleDateString('pt-BR')}
-                      </small>
-                  </article>
-              `;
-                }).join('');
-
-            } catch (err) {
-                console.error('Erro inesperado:', err);
-                postsContainer.innerHTML = '<p>Ocorreu um erro ao carregar os dados.</p>';
-            }
-        });
-    </script>
-    <!-- Pop-up de Aviso/Promoção Dinâmico -->
+    <!-- Pop-up Modal Dinâmico -->
     <div id="promo-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <button id="close-modal" class="close-btn" aria-label="Fechar pop-up">&times;</button>
@@ -240,43 +161,96 @@
         </div>
     </div>
 
-    <!-- SDK do Supabase e Lógica do Pop-up -->
+    <!-- Rodapé -->
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 SR Logística e Transporte. Todos os direitos reservados.</p>
+        </div>
+    </footer>
+
+    <!-- Scripts do Site -->
+    <script src="script.js"></script>
+    <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <script>
-        // Conexão com seu banco de dados
+        // Credenciais Corrigidas
         const SUPABASE_URL = 'https://lvdplhnbkkmlcxeuqhdo.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_CoC8vHLwAQ3kGsXwWBlaoA_4LB5SzsK';
+
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         document.addEventListener('DOMContentLoaded', async () => {
-            // Busca APENAS a postagem mais recente (limit 1)
-            const { data, error } = await supabaseClient
-                .from('posts')
-                .select('*')
-                .order('created_at', { ascending: false })
-                .limit(1);
+            const postsContainer = document.getElementById('posts-feed');
+            const modalOverlay = document.getElementById('promo-modal');
+            const btnCloseModal = document.getElementById('close-modal');
 
-            // Se existir uma postagem, exibe o pop-up
-            if (data && data.length > 0) {
-                const post = data[0];
+            try {
+                // 1. Busca os posts do banco
+                const { data: posts, error } = await supabaseClient
+                    .from('posts')
+                    .select('*')
+                    .order('created_at', { ascending: false });
 
-                // Preenche os textos com o que veio do banco
-                document.getElementById('modal-title').textContent = post.title;
-                document.getElementById('modal-text').textContent = post.content;
+                if (error) throw error;
 
-                // Ajusta a etiqueta (Promoção ou Aviso)
-                const badge = document.getElementById('modal-badge');
-                badge.textContent = post.type === 'promo' ? 'PROMOÇÃO' : 'AVISO IMPORTANTENTE';
-                badge.className = `badge ${post.type}`; // Aplica a cor certa
+                // 2. Preenche o Feed no fim da página
+                if (postsContainer) {
+                    if (!posts || posts.length === 0) {
+                        postsContainer.innerHTML = '<p style="grid-column: 1 / -1; text-align: center;">Nenhuma novidade no momento.</p>';
+                    } else {
+                        postsContainer.innerHTML = posts.map(post => {
+                            const isPromo = post.type === 'promo';
+                            return `
+                            <article class="service-card reveal">
+                                <div class="service-icon" style="font-size: 1rem; padding: 5px 10px; width: max-content; margin: 0 auto 15px auto; border-radius: 20px; background: ${isPromo ? '#dc3545' : '#007bff'}; color: white;">
+                                    ${isPromo ? '🏷️ Promoção' : '📢 Aviso'}
+                                </div>
+                                <h3>${post.title}</h3>
+                                <p>${post.content}</p>
+                                <small style="display: block; margin-top: 15px; color: #777;">
+                                    ${new Date(post.created_at).toLocaleDateString('pt-BR')}
+                                </small>
+                            </article>`;
+                        }).join('');
+                    }
+                }
 
-                // Mostra o pop-up na tela
-                document.getElementById('promo-modal').classList.remove('hidden');
+                // 3. Lógica do Pop-up (Modal) para o último post
+                if (posts && posts.length > 0) {
+                    const latestPost = posts[0]; // Pega o post mais recente
+
+                    // Verifica se já fechou o pop-up nas últimas 24 horas
+                    const lastClosedTime = localStorage.getItem('sr_modal_closed_time');
+                    const now = new Date().getTime();
+                    // 86400000 milissegundos = 24 horas
+                    const shouldShowModal = true; // Forçando aparecer sempre para testar
+
+                    if (shouldShowModal) {
+                        document.getElementById('modal-title').textContent = latestPost.title;
+                        document.getElementById('modal-text').textContent = latestPost.content;
+
+                        const badge = document.getElementById('modal-badge');
+                        badge.textContent = latestPost.type === 'promo' ? 'PROMOÇÃO' : 'AVISO IMPORTANTE';
+                        badge.style.backgroundColor = latestPost.type === 'promo' ? '#dc3545' : '#007bff';
+                        badge.style.color = 'white';
+
+                        modalOverlay.classList.remove('hidden');
+                    }
+                }
+
+            } catch (err) {
+                console.error('Erro ao conectar com Supabase:', err);
+                if (postsContainer) postsContainer.innerHTML = '<p>Erro ao carregar novidades.</p>';
             }
 
-            // Lógica para fechar o pop-up ao clicar no 'X'
-            document.getElementById('close-modal').addEventListener('click', () => {
-                document.getElementById('promo-modal').classList.add('hidden');
-            });
+            // 4. Fechar o Modal e registrar a hora
+            if (btnCloseModal) {
+                btnCloseModal.addEventListener('click', () => {
+                    modalOverlay.classList.add('hidden');
+                    localStorage.setItem('sr_modal_closed_time', new Date().getTime().toString());
+                });
+            }
         });
     </script>
 </body>
