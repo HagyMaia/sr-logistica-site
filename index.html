@@ -230,6 +230,55 @@
             }
         });
     </script>
+    <!-- Pop-up de Aviso/Promoção Dinâmico -->
+    <div id="promo-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button id="close-modal" class="close-btn" aria-label="Fechar pop-up">&times;</button>
+            <span id="modal-badge" class="badge">Aviso</span>
+            <h2 id="modal-title">Carregando...</h2>
+            <p id="modal-text"></p>
+        </div>
+    </div>
+
+    <!-- SDK do Supabase e Lógica do Pop-up -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Conexão com seu banco de dados
+        const SUPABASE_URL = 'https://lvdplhnbkkmlcxeuqhdo.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_CoC8vHLwAQ3kGsXwWBlaoA_4LB5SzsK';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Busca APENAS a postagem mais recente (limit 1)
+            const { data, error } = await supabaseClient
+                .from('posts')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(1);
+
+            // Se existir uma postagem, exibe o pop-up
+            if (data && data.length > 0) {
+                const post = data[0];
+
+                // Preenche os textos com o que veio do banco
+                document.getElementById('modal-title').textContent = post.title;
+                document.getElementById('modal-text').textContent = post.content;
+
+                // Ajusta a etiqueta (Promoção ou Aviso)
+                const badge = document.getElementById('modal-badge');
+                badge.textContent = post.type === 'promo' ? 'PROMOÇÃO' : 'AVISO IMPORTANTENTE';
+                badge.className = `badge ${post.type}`; // Aplica a cor certa
+
+                // Mostra o pop-up na tela
+                document.getElementById('promo-modal').classList.remove('hidden');
+            }
+
+            // Lógica para fechar o pop-up ao clicar no 'X'
+            document.getElementById('close-modal').addEventListener('click', () => {
+                document.getElementById('promo-modal').classList.add('hidden');
+            });
+        });
+    </script>
 </body>
 
 </html>
