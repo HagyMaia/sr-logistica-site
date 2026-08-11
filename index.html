@@ -153,15 +153,21 @@
 
     <!-- Pop-up Modal Dinâmico -->
     <div id="promo-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <button id="close-modal" class="close-btn" aria-label="Fechar pop-up">&times;</button>
-            <span id="modal-badge" class="badge">Aviso</span>
+        <div class="modal-content"
+            style="position: relative; max-width: 400px; width: 90%; background: #ffffff; padding: 40px 20px 25px 20px; border-radius: 12px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow: hidden; margin: 0 auto; display: flex; flex-direction: column; align-items: center;">
 
-            <!-- Imagem do Modal -->
-            <img id="modal-image" src="" alt="Imagem da publicação" class="modal-img hidden">
+            <!-- Botão Fechar Forçado via HTML -->
+            <button id="close-modal" aria-label="Fechar pop-up"
+                style="position: absolute; top: 12px; right: 12px; background: #dc3545; color: white; border: none; width: 35px; height: 35px; border-radius: 50%; font-size: 22px; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">&times;</button>
 
-            <h2 id="modal-title">Carregando...</h2>
-            <p id="modal-text"></p>
+            <span id="modal-badge" class="badge" style="margin-bottom: 15px;">Aviso</span>
+
+            <!-- Imagem Travada no HTML (Máximo 220px de altura) -->
+            <img id="modal-image" src="" alt="Imagem da publicação" class="hidden"
+                style="width: 100%; max-width: 100%; max-height: 220px; object-fit: contain; margin-bottom: 15px; border-radius: 8px;">
+
+            <h2 id="modal-title" style="margin-bottom: 10px; color: #111; font-size: 1.5rem;">Carregando...</h2>
+            <p id="modal-text" style="color: #444; font-size: 1rem; margin: 0;"></p>
         </div>
     </div>
 
