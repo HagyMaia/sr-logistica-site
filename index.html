@@ -12,6 +12,57 @@
     <!-- FontAwesome (Ícones) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
+    <!-- ======================================= -->
+    <!-- CORREÇÕES PARA VISUALIZAÇÃO NO CELULAR  -->
+    <!-- ======================================= -->
+    <style>
+        @media (max-width: 768px) {
+
+            /* 1. Força as colunas do site a ficarem uma embaixo da outra */
+            .split-layout,
+            .services-grid,
+            .contact-grid {
+                display: grid !important;
+                grid-template-columns: 1fr !important;
+                /* Uma coluna só */
+                gap: 20px !important;
+            }
+
+            /* 2. Ajusta o menu do topo e textos para não quebrarem */
+            .nav-container {
+                flex-direction: column !important;
+                text-align: center;
+                gap: 15px;
+            }
+
+            .nav-links {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .hero-content h1 {
+                font-size: 2rem !important;
+                /* Diminui o textão inicial */
+            }
+
+            /* 3. Garante que o Pop-up fique grande e legível no celular */
+            .modal-overlay {
+                padding: 15px;
+                /* Dá uma margenzinha para não grudar na borda do celular */
+            }
+
+            .modal-content {
+                width: 100% !important;
+                max-width: 100% !important;
+                padding: 40px 15px 25px 15px !important;
+            }
+
+            #modal-image {
+                max-height: 250px !important;
+                /* Mantém a imagem num tamanho bom */
+            }
+        }
+    </style>
 </head>
 
 <body>
