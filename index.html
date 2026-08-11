@@ -168,90 +168,88 @@
         </div>
     </footer>
 
+
     <!-- Scripts do Site -->
     <script src="script.js"></script>
-    <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
-        // Credenciais Corrigidas
-        const SUPABASE_URL = 'https://lvdplhnbkkmlcxeuqhdo.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_CoC8vHLwAQ3kGsXwWBlaoA_4LB5SzsK';
+        // O código agora está protegido por uma função anônima, evitando erros de conflito!
+        (() => {
+            const URL = 'https://lvdplhnbkkmlcxeuqhdo.supabase.co';
+            const KEY = 'sb_publishable_CoC8vHLwAQ3kGsXwWBlaoA_4LB5SzsK';
 
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            const supabaseClient = window.supabase.createClient(URL, KEY);
 
-        document.addEventListener('DOMContentLoaded', async () => {
-            const postsContainer = document.getElementById('posts-feed');
-            const modalOverlay = document.getElementById('promo-modal');
-            const btnCloseModal = document.getElementById('close-modal');
+            document.addEventListener('DOMContentLoaded', async () => {
+                const postsContainer = document.getElementById('posts-feed');
+                const modalOverlay = document.getElementById('promo-modal');
+                const btnCloseModal = document.getElementById('close-modal');
 
-            try {
-                // 1. Busca os posts do banco
-                const { data: posts, error } = await supabaseClient
-                    .from('posts')
-                    .select('*')
-                    .order('created_at', { ascending: false });
+                try {
+                    // 1. Busca os posts do banco
+                    const { data: posts, error } = await supabaseClient
+                        .from('posts')
+                        .select('*')
+                        .order('created_at', { ascending: false });
 
-                if (error) throw error;
+                    if (error) throw error;
 
-                // 2. Preenche o Feed no fim da página
-                if (postsContainer) {
-                    if (!posts || posts.length === 0) {
-                        postsContainer.innerHTML = '<p style="grid-column: 1 / -1; text-align: center;">Nenhuma novidade no momento.</p>';
-                    } else {
-                        postsContainer.innerHTML = posts.map(post => {
-                            const isPromo = post.type === 'promo';
-                            return `
-                            <article class="service-card reveal">
-                                <div class="service-icon" style="font-size: 1rem; padding: 5px 10px; width: max-content; margin: 0 auto 15px auto; border-radius: 20px; background: ${isPromo ? '#dc3545' : '#007bff'}; color: white;">
-                                    ${isPromo ? '🏷️ Promoção' : '📢 Aviso'}
-                                </div>
-                                <h3>${post.title}</h3>
-                                <p>${post.content}</p>
-                                <small style="display: block; margin-top: 15px; color: #777;">
-                                    ${new Date(post.created_at).toLocaleDateString('pt-BR')}
-                                </small>
-                            </article>`;
-                        }).join('');
+                    // 2. Preenche o Feed no fim da página
+                    if (postsContainer) {
+                        if (!posts || posts.length === 0) {
+                            postsContainer.innerHTML = '<p style="grid-column: 1 / -1; text-align: center;">Nenhuma novidade no momento.</p>';
+                        } else {
+                            postsContainer.innerHTML = posts.map(post => {
+                                const isPromo = post.type === 'promo';
+                                return `
+                                <article class="service-card reveal">
+                                    <div class="service-icon" style="font-size: 1rem; padding: 5px 10px; width: max-content; margin: 0 auto 15px auto; border-radius: 20px; background: ${isPromo ? '#dc3545' : '#007bff'}; color: white;">
+                                        ${isPromo ? '🏷️ Promoção' : '📢 Aviso'}
+                                    </div>
+                                    <h3>${post.title}</h3>
+                                    <p>${post.content}</p>
+                                    <small style="display: block; margin-top: 15px; color: #777;">
+                                        ${new Date(post.created_at).toLocaleDateString('pt-BR')}
+                                    </small>
+                                </article>`;
+                            }).join('');
+                        }
                     }
+
+                    // 3. Lógica do Pop-up (Modal)
+                    if (posts && posts.length > 0) {
+                        const latestPost = posts[0];
+
+                        // Forçando aparecer sempre para podermos testar agora
+                        const shouldShowModal = true;
+
+                        if (shouldShowModal && modalOverlay) {
+                            document.getElementById('modal-title').textContent = latestPost.title;
+                            document.getElementById('modal-text').textContent = latestPost.content;
+
+                            const badge = document.getElementById('modal-badge');
+                            badge.textContent = latestPost.type === 'promo' ? 'PROMOÇÃO' : 'AVISO IMPORTANTE';
+                            badge.style.backgroundColor = latestPost.type === 'promo' ? '#dc3545' : '#007bff';
+                            badge.style.color = 'white';
+
+                            modalOverlay.classList.remove('hidden');
+                        }
+                    }
+
+                } catch (err) {
+                    console.error('Erro ao conectar com Supabase:', err);
                 }
 
-                // 3. Lógica do Pop-up (Modal) para o último post
-                if (posts && posts.length > 0) {
-                    const latestPost = posts[0]; // Pega o post mais recente
-
-                    // Verifica se já fechou o pop-up nas últimas 24 horas
-                    const lastClosedTime = localStorage.getItem('sr_modal_closed_time');
-                    const now = new Date().getTime();
-                    // 86400000 milissegundos = 24 horas
-                    const shouldShowModal = true; // Forçando aparecer sempre para testar
-
-                    if (shouldShowModal) {
-                        document.getElementById('modal-title').textContent = latestPost.title;
-                        document.getElementById('modal-text').textContent = latestPost.content;
-
-                        const badge = document.getElementById('modal-badge');
-                        badge.textContent = latestPost.type === 'promo' ? 'PROMOÇÃO' : 'AVISO IMPORTANTE';
-                        badge.style.backgroundColor = latestPost.type === 'promo' ? '#dc3545' : '#007bff';
-                        badge.style.color = 'white';
-
-                        modalOverlay.classList.remove('hidden');
-                    }
+                // 4. Fechar o Modal
+                if (btnCloseModal && modalOverlay) {
+                    btnCloseModal.addEventListener('click', () => {
+                        modalOverlay.classList.add('hidden');
+                        localStorage.setItem('sr_modal_closed_time', new Date().getTime().toString());
+                    });
                 }
-
-            } catch (err) {
-                console.error('Erro ao conectar com Supabase:', err);
-                if (postsContainer) postsContainer.innerHTML = '<p>Erro ao carregar novidades.</p>';
-            }
-
-            // 4. Fechar o Modal e registrar a hora
-            if (btnCloseModal) {
-                btnCloseModal.addEventListener('click', () => {
-                    modalOverlay.classList.add('hidden');
-                    localStorage.setItem('sr_modal_closed_time', new Date().getTime().toString());
-                });
-            }
-        });
+            });
+        })();
     </script>
 </body>
 
