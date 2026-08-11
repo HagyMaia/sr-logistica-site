@@ -156,6 +156,10 @@
         <div class="modal-content">
             <button id="close-modal" class="close-btn" aria-label="Fechar pop-up">&times;</button>
             <span id="modal-badge" class="badge">Aviso</span>
+
+            <!-- Imagem do Modal -->
+            <img id="modal-image" src="" alt="Imagem da publicação" class="modal-img hidden">
+
             <h2 id="modal-title">Carregando...</h2>
             <p id="modal-text"></p>
         </div>
@@ -168,13 +172,12 @@
         </div>
     </footer>
 
-
     <!-- Scripts do Site -->
     <script src="script.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
-        // O código agora está protegido por uma função anônima, evitando erros de conflito!
+        // Isolamento de código para evitar conflitos
         (() => {
             const URL = 'https://lvdplhnbkkmlcxeuqhdo.supabase.co';
             const KEY = 'sb_publishable_CoC8vHLwAQ3kGsXwWBlaoA_4LB5SzsK';
@@ -195,19 +198,23 @@
 
                     if (error) throw error;
 
-                    // 2. Preenche o Feed no fim da página
+                    // 2. Preenche o Feed no fim da página (Agora com suporte a imagem)
                     if (postsContainer) {
                         if (!posts || posts.length === 0) {
                             postsContainer.innerHTML = '<p style="grid-column: 1 / -1; text-align: center;">Nenhuma novidade no momento.</p>';
                         } else {
                             postsContainer.innerHTML = posts.map(post => {
                                 const isPromo = post.type === 'promo';
+                                // Gera a tag da imagem APENAS se houver imagem salva no banco
+                                const imgHtml = post.image_url ? `<img src="${post.image_url}" class="feed-img" alt="Imagem da postagem">` : '';
+
                                 return `
                                 <article class="service-card reveal">
                                     <div class="service-icon" style="font-size: 1rem; padding: 5px 10px; width: max-content; margin: 0 auto 15px auto; border-radius: 20px; background: ${isPromo ? '#dc3545' : '#007bff'}; color: white;">
                                         ${isPromo ? '🏷️ Promoção' : '📢 Aviso'}
                                     </div>
-                                    <h3>${post.title}</h3>
+                                    ${imgHtml}
+                                    <h3 style="margin-top: 15px;">${post.title}</h3>
                                     <p>${post.content}</p>
                                     <small style="display: block; margin-top: 15px; color: #777;">
                                         ${new Date(post.created_at).toLocaleDateString('pt-BR')}
@@ -217,12 +224,14 @@
                         }
                     }
 
-                    // 3. Lógica do Pop-up (Modal)
+                    // 3. Lógica do Pop-up (Modal) com suporte a imagem
                     if (posts && posts.length > 0) {
                         const latestPost = posts[0];
 
-                        // Forçando aparecer sempre para podermos testar agora
-                        const shouldShowModal = true;
+                        // Regra de 24 horas ativada
+                        const lastClosedTime = localStorage.getItem('sr_modal_closed_time');
+                        const now = new Date().getTime();
+                        const shouldShowModal = !lastClosedTime || (now - parseInt(lastClosedTime)) > 86400000;
 
                         if (shouldShowModal && modalOverlay) {
                             document.getElementById('modal-title').textContent = latestPost.title;
@@ -232,6 +241,15 @@
                             badge.textContent = latestPost.type === 'promo' ? 'PROMOÇÃO' : 'AVISO IMPORTANTE';
                             badge.style.backgroundColor = latestPost.type === 'promo' ? '#dc3545' : '#007bff';
                             badge.style.color = 'white';
+
+                            // Lógica de exibição da Imagem no Modal
+                            const modalImg = document.getElementById('modal-image');
+                            if (latestPost.image_url) {
+                                modalImg.src = latestPost.image_url;
+                                modalImg.classList.remove('hidden');
+                            } else {
+                                modalImg.classList.add('hidden');
+                            }
 
                             modalOverlay.classList.remove('hidden');
                         }
