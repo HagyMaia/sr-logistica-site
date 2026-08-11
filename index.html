@@ -231,7 +231,7 @@
                         // Regra de 24 horas ativada
                         const lastClosedTime = localStorage.getItem('sr_modal_closed_time');
                         const now = new Date().getTime();
-                        const shouldShowModal = !lastClosedTime || (now - parseInt(lastClosedTime)) > 86400000;
+                        const shouldShowModal = true; // Forçando aparecer sempre para testar
 
                         if (shouldShowModal && modalOverlay) {
                             document.getElementById('modal-title').textContent = latestPost.title;
