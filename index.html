@@ -203,29 +203,28 @@
     </section>
 
     <!-- Pop-up Modal Dinâmico -->
-    <div id="promo-modal" class="modal-overlay hidden">
+    <div id="promo-modal" class="modal-overlay hidden"
+        style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.7); display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 15px; box-sizing: border-box;">
         <div class="modal-content"
-            style="position: relative; max-width: 400px; width: 90%; background: #ffffff; padding: 40px 20px 25px 20px; border-radius: 12px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow: hidden; margin: 0 auto; display: flex; flex-direction: column; align-items: center;">
+            style="position: relative; width: 100%; max-width: 420px; background: #ffffff; padding: 35px 20px 20px 20px; border-radius: 12px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box; max-height: 90vh; overflow-y: auto;">
 
-            <!-- Botão Fechar Forçado via HTML -->
+            <!-- Botão Fechar -->
             <button id="close-modal" aria-label="Fechar pop-up"
-                style="position: absolute; top: 12px; right: 12px; background: #dc3545; color: white; border: none; width: 35px; height: 35px; border-radius: 50%; font-size: 22px; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; z-index: 10; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">&times;</button>
+                style="position: absolute; top: 10px; right: 10px; background: #dc3545; color: white; border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 20px; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; z-index: 10;">&times;</button>
 
-            <span id="modal-badge" class="badge" style="margin-bottom: 15px;">Aviso</span>
+            <span id="modal-badge" class="badge" style="margin-bottom: 12px; display: inline-block;">Aviso</span>
 
-            <!-- Imagem Ajustada para Preencher a Largura -->
+            <!-- Imagem Responsiva Inteira (sem cortar) -->
             <img id="modal-image" src="" alt="Imagem da publicação" class="hidden"
-                style="width: 100%; height: auto; max-height: 350px; object-fit: cover; margin-bottom: 15px; border-radius: 8px;">
+                style="width: 100%; height: auto; max-height: 300px; object-fit: contain; margin-bottom: 12px; border-radius: 8px; display: block;">
 
-            <h2 id="modal-title" style="margin-bottom: 10px; color: #111; font-size: 1.5rem;">Carregando...</h2>
+            <h2 id="modal-title" style="margin-bottom: 8px; color: #111; font-size: 1.3rem;">Carregando...</h2>
+            <p id="modal-text" style="color: #444; font-size: 0.95rem; margin: 0 0 15px 0;"></p>
 
-            <!-- Texto do modal com uma margem extra embaixo para dar espaço ao botão -->
-            <p id="modal-text" style="color: #444; font-size: 1rem; margin: 0 0 20px 0;"></p>
-
-            <!-- Botão do WhatsApp do Dono -->
+            <!-- Botão do WhatsApp -->
             <a href="https://wa.me/559291306160" target="_blank"
-                style="background-color: #25D366; color: white; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; box-shadow: 0 4px 6px rgba(37, 211, 102, 0.3);">
-                <i class="fab fa-whatsapp" style="font-size: 1.3rem;"></i> Falar no WhatsApp
+                style="background-color: #25D366; color: white; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; box-sizing: border-box;">
+                <i class="fab fa-whatsapp" style="font-size: 1.2rem;"></i> Falar no WhatsApp
             </a>
         </div>
     </div>
