@@ -4,344 +4,122 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Painel de Administração da SR Logística">
     <title>Painel Admin | SR Logística</title>
-    <!-- Google Fonts -->
+
+    <!-- Fontes e Ícones -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <!-- FontAwesome (Ícones) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
-    <style>
-        .admin-container {
-            max-width: 800px;
-            margin: 6rem auto;
-            padding: 2rem;
-            background: var(--card-bg, #ffffff);
-            border-radius: 8px;
-            box-shadow: var(--shadow, 0 4px 6px rgba(0, 0, 0, 0.1));
-        }
 
-        .admin-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-            padding-bottom: 1rem;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-        }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-            position: relative;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 0.8rem;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            font-family: inherit;
-        }
-
-        .form-group textarea {
-            resize: vertical;
-            min-height: 100px;
-        }
-
-        /* Container para o campo de senha com ícone */
-        .password-wrapper {
-            position: relative;
-            display: flex;
-            align-items: center;
-        }
-
-        .password-wrapper input {
-            padding-right: 2.5rem;
-        }
-
-        .toggle-password {
-            position: absolute;
-            right: 12px;
-            cursor: pointer;
-            color: var(--text-muted, #666);
-            user-select: none;
-        }
-
-        .posts-list {
-            margin-top: 3rem;
-        }
-
-        .post-item {
-            background: var(--bg-light, #f8f9fa);
-            padding: 1rem;
-            margin-bottom: 1rem;
-            border-radius: 4px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .delete-btn {
-            background: #dc3545;
-            color: white;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .delete-btn:hover {
-            background: #c82333;
-        }
-    </style>
+    <!-- Estilos exclusivos do admin -->
+    <link rel="stylesheet" href="admin-styles.css">
 </head>
 
 <body>
-    <!-- Navbar (Sticky) -->
-    <nav class="navbar">
-        <div class="container nav-container">
-            <div class="logo">SR Logística Admin</div>
-            <ul class="nav-links">
-                <li><a href="index.html"><i class="fas fa-arrow-left"></i> Voltar ao Site</a></li>
-            </ul>
-        </div>
-    </nav>
+    <header>
+        <nav class="navbar" aria-label="Navegação principal">
+            <div class="container nav-container">
+                <div class="logo">SR Logística Admin</div>
+                <ul class="nav-links">
+                    <li><a href="index.html" aria-label="Voltar para a página inicial"><i class="fas fa-arrow-left"></i>
+                            Voltar ao Site</a></li>
+                </ul>
+            </div>
+        </nav>
+    </header>
 
-    <div class="container">
-        <!-- Login Container -->
-        <div class="admin-container" id="login-container">
-            <div class="admin-header">
+    <main class="container">
+        <!-- Seção de Login -->
+        <section class="admin-container" id="login-container" aria-labelledby="login-title">
+            <header class="admin-header">
                 <div>
-                    <h2>Acesso Restrito</h2>
+                    <h1 id="login-title">Acesso Restrito</h1>
                     <p>Faça login para gerenciar as informações.</p>
                 </div>
-            </div>
-            <form id="login-form">
+            </header>
+
+            <form id="login-form" novalidate>
                 <div class="form-group">
                     <label for="admin-user">E-mail</label>
-                    <input type="email" id="admin-user" required placeholder="seu-email@exemplo.com">
+                    <input type="email" id="admin-user" required placeholder="seu-email@exemplo.com"
+                        aria-required="true">
                 </div>
+
                 <div class="form-group">
                     <label for="admin-password">Senha</label>
                     <div class="password-wrapper">
-                        <input type="password" id="admin-password" required placeholder="Sua senha">
-                        <i class="fas fa-eye toggle-password" id="togglePassword" title="Mostrar/Ocultar Senha"></i>
+                        <input type="password" id="admin-password" required placeholder="Sua senha"
+                            aria-required="true">
+                        <button type="button" class="toggle-password" id="togglePassword" aria-label="Mostrar senha">
+                            <i class="fas fa-eye" aria-hidden="true"></i>
+                        </button>
                     </div>
                 </div>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem;">
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-sign-in-alt"></i> Entrar</button>
-                    <a href="#" id="forgot-password"
-                        style="color: var(--primary-light, #007bff); font-size: 0.9rem; text-decoration: none;">Esqueceu
-                        a senha?</a>
-                </div>
-            </form>
-        </div>
 
-        <!-- Dashboard Container (Hidden por padrão) -->
-        <div class="admin-container" id="dashboard-container" style="display: none;">
-            <div class="admin-header">
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-sign-in-alt" aria-hidden="true"></i> Entrar
+                    </button>
+                    <a href="#" id="forgot-password" class="forgot-link">Esqueceu a senha?</a>
+                </div>
+                <div id="login-feedback" class="feedback-msg" aria-live="polite"></div>
+            </form>
+        </section>
+
+        <!-- Seção do Dashboard (Oculta inicialmente) -->
+        <section class="admin-container hidden" id="dashboard-container" aria-labelledby="dashboard-title">
+            <header class="admin-header">
                 <div>
-                    <h2>Gerenciar Informações</h2>
+                    <h1 id="dashboard-title">Gerenciar Informações</h1>
                     <p>Painel de Controle Integrado ao Supabase</p>
                 </div>
-                <button id="btn-logout" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.5rem 1rem;"><i
-                        class="fas fa-sign-out-alt"></i> Sair do Painel</button>
-            </div>
+                <button id="btn-logout" class="btn btn-outline" aria-label="Sair da conta">
+                    <i class="fas fa-sign-out-alt" aria-hidden="true"></i> Sair do Painel
+                </button>
+            </header>
 
-            <form id="admin-form">
+            <form id="admin-form" novalidate>
                 <div class="form-group">
                     <label for="post-type">Tipo de Postagem</label>
-                    <select id="post-type" required>
+                    <select id="post-type" required aria-required="true">
                         <option value="promo">Promoção (Ex: Desconto em corrida)</option>
                         <option value="info">Aviso (Ex: Novo veículo na frota)</option>
                     </select>
                 </div>
+
                 <div class="form-group">
                     <label for="post-title">Título</label>
-                    <input type="text" id="post-title" required placeholder="Ex: Oferta Especial 10% OFF">
+                    <input type="text" id="post-title" required placeholder="Ex: Oferta Especial 10% OFF"
+                        aria-required="true">
                 </div>
+
                 <div class="form-group">
                     <label for="post-content">Conteúdo</label>
-                    <textarea id="post-content" required placeholder="Descreva os detalhes aqui..."></textarea>
+                    <textarea id="post-content" required placeholder="Descreva os detalhes aqui..."
+                        aria-required="true"></textarea>
                 </div>
-                <button type="submit" class="btn btn-primary"><i class="fas fa-plus"></i> Adicionar Postagem</button>
+
+                <button type="submit" class="btn btn-primary" id="btn-add-post">
+                    <i class="fas fa-plus" aria-hidden="true"></i> Adicionar Postagem
+                </button>
+                <div id="post-feedback" class="feedback-msg" aria-live="polite"></div>
             </form>
 
-            <div class="posts-list">
-                <h3>Postagens Atuais</h3>
-                <div id="posts-container">
-                    <!-- Posts carregados via JS -->
+            <section class="posts-list" aria-labelledby="posts-title">
+                <h2 id="posts-title">Postagens Atuais</h2>
+                <div id="posts-container" aria-live="polite">
+                    <!-- Posts injetados via JavaScript -->
                 </div>
-            </div>
-        </div>
-    </div>
+            </section>
+        </section>
+    </main>
 
     <!-- Supabase JS SDK v2 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-    <script>
-        // Credenciais Oficiais
-        const SUPABASE_URL = 'https://lvdplhnbkmlcxeuqhdo.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2ZHBsaG5ia2ttbGN4ZXVxaGRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYzNzY2ODIsImV4cCI6MjEwMTk1MjY4Mn0.qy3QAgAlCUTXPyA67tig2NYrovScTRM5EwFtQCItRMg';
-
-        // Inicializando a instância do Supabase
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-        document.addEventListener('DOMContentLoaded', async () => {
-            const form = document.getElementById('admin-form');
-            const postsContainer = document.getElementById('posts-container');
-            const loginContainer = document.getElementById('login-container');
-            const dashboardContainer = document.getElementById('dashboard-container');
-            const loginForm = document.getElementById('login-form');
-            const btnLogout = document.getElementById('btn-logout');
-
-            // Toggle para Mostrar/Ocultar Senha
-            const togglePassword = document.getElementById('togglePassword');
-            const passwordInput = document.getElementById('admin-password');
-            if (togglePassword && passwordInput) {
-                togglePassword.addEventListener('click', () => {
-                    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-                    passwordInput.setAttribute('type', type);
-                    togglePassword.classList.toggle('fa-eye');
-                    togglePassword.classList.toggle('fa-eye-slash');
-                });
-            }
-
-            // Verifica o tema escuro
-            if (localStorage.getItem('theme') === 'dark') {
-                document.body.classList.add('dark-mode');
-            }
-
-            // --- CARREGAR POSTS ---
-            const loadPosts = async () => {
-                postsContainer.innerHTML = '<p>Carregando...</p>';
-                const { data: infoData, error } = await supabaseClient
-                    .from('posts')
-                    .select('*')
-                    .order('created_at', { ascending: false });
-
-                if (error) {
-                    console.error('Erro ao buscar posts:', error);
-                    postsContainer.innerHTML = `<p style="color:red;">Erro ao carregar postagens: ${error.message}</p>`;
-                    return;
-                }
-
-                if (!infoData || infoData.length === 0) {
-                    postsContainer.innerHTML = '<p>Nenhuma postagem cadastrada.</p>';
-                    return;
-                }
-
-                postsContainer.innerHTML = infoData.map(item => `
-                    <div class="post-item">
-                        <div>
-                            <strong>[${item.type === 'promo' ? 'Promoção' : 'Aviso'}]</strong> ${item.title}
-                        </div>
-                        <button class="delete-btn" onclick="deletePost('${item.id}')"><i class="fas fa-trash"></i> Remover</button>
-                    </div>
-                `).join('');
-            };
-
-            // --- DELETAR POST ---
-            window.deletePost = async (id) => {
-                if (confirm('Tem certeza que deseja remover esta postagem?')) {
-                    const { error } = await supabaseClient.from('posts').delete().eq('id', id);
-                    if (error) {
-                        alert('Erro ao remover: ' + error.message);
-                    } else {
-                        loadPosts();
-                    }
-                }
-            };
-
-            // --- CRIAR POST ---
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const type = document.getElementById('post-type').value;
-                const title = document.getElementById('post-title').value;
-                const content = document.getElementById('post-content').value;
-
-                const { error } = await supabaseClient.from('posts').insert([{ type, title, content }]);
-
-                if (error) {
-                    alert('Erro ao adicionar postagem: ' + error.message);
-                } else {
-                    form.reset();
-                    loadPosts();
-                    alert('Postagem adicionada com sucesso!');
-                }
-            });
-
-            // --- AUTENTICAÇÃO ---
-
-            // Verifica sessão do usuário
-            const { data: { session } } = await supabaseClient.auth.getSession();
-            if (session) {
-                loginContainer.style.display = 'none';
-                dashboardContainer.style.display = 'block';
-                loadPosts();
-            }
-
-            // Ação de Login
-            loginForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const email = document.getElementById('admin-user').value;
-                const password = document.getElementById('admin-password').value;
-
-                const { data, error } = await supabaseClient.auth.signInWithPassword({
-                    email: email,
-                    password: password
-                });
-
-                if (error) {
-                    alert('Erro no login: ' + error.message);
-                } else {
-                    loginContainer.style.display = 'none';
-                    dashboardContainer.style.display = 'block';
-                    loadPosts();
-                }
-            });
-
-            // Recuperação de Senha
-            const forgotPasswordLink = document.getElementById('forgot-password');
-            if (forgotPasswordLink) {
-                forgotPasswordLink.addEventListener('click', async (e) => {
-                    e.preventDefault();
-                    const email = document.getElementById('admin-user').value;
-                    if (!email) {
-                        alert('Por favor, digite seu e-mail no campo acima primeiro.');
-                        return;
-                    }
-
-                    const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-                        redirectTo: window.location.origin + '/admin.html',
-                    });
-
-                    if (error) {
-                        alert('Erro ao enviar e-mail: ' + error.message);
-                    } else {
-                        alert('Instruções para redefinição enviadas para o seu e-mail!');
-                    }
-                });
-            }
-
-            // Logout
-            if (btnLogout) {
-                btnLogout.addEventListener('click', async () => {
-                    await supabaseClient.auth.signOut();
-                    window.location.reload();
-                });
-            }
-        });
-    </script>
+    <!-- Script exclusivo do admin -->
+    <script src="admin-script.js"></script>
 </body>
 
 </html>

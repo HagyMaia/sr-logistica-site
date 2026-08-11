@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. Theme Toggle Logic
     const themeToggleBtn = document.getElementById('theme-toggle');
     const themeIcon = themeToggleBtn.querySelector('i');
-    
+
     // Check local storage for theme preference
     const currentTheme = localStorage.getItem('theme');
     if (currentTheme === 'dark') {
@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     themeToggleBtn.addEventListener('click', () => {
         document.body.classList.toggle('dark-mode');
-        
+
         let theme = 'light';
         if (document.body.classList.contains('dark-mode')) {
             theme = 'dark';
@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
             themeIcon.classList.remove('fa-sun');
             themeIcon.classList.add('fa-moon');
         }
-        
+
         localStorage.setItem('theme', theme);
     });
 
@@ -31,10 +31,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const renderInfo = async () => {
         const container = document.getElementById('dynamic-content-container');
         if (!container) return;
-        
-        if(SUPABASE_URL === 'SUA_SUPABASE_PROJECT_URL_AQUI') {
-             container.innerHTML = '<p style="grid-column: 1 / -1; color: var(--text-muted);">Mural em configuração (Aguardando chaves do Supabase).</p>';
-             return;
+
+        if (SUPABASE_URL === 'SUA_SUPABASE_PROJECT_URL_AQUI') {
+            container.innerHTML = '<p style="grid-column: 1 / -1; color: var(--text-muted);">Mural em configuração (Aguardando chaves do Supabase).</p>';
+            return;
         }
 
         try {
@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
-            
+
             if (!infoData || infoData.length === 0) {
                 container.innerHTML = '<p style="grid-column: 1 / -1; color: var(--text-muted);">Nenhuma novidade no momento.</p>';
                 return;
@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Re-aplica animação aos novos elementos
             const newReveals = container.querySelectorAll('.reveal');
             newReveals.forEach(reveal => revealOnScroll.observe(reveal));
-            
+
         } catch (error) {
             console.error('Erro ao buscar do Supabase:', error);
             container.innerHTML = '<p style="grid-column: 1 / -1; color: var(--text-muted);">Erro ao carregar informações.</p>';
@@ -74,10 +74,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const revealOptions = {
         threshold: 0.15, // Trigger when 15% of the element is visible
-        rootMargin: "0px 0px -50px 0px" 
+        rootMargin: "0px 0px -50px 0px"
     };
 
-    const revealOnScroll = new IntersectionObserver(function(entries, observer) {
+    const revealOnScroll = new IntersectionObserver(function (entries, observer) {
         entries.forEach(entry => {
             if (!entry.isIntersecting) {
                 return;
