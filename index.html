@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
+    <!-- Viewport obrigatório para responsividade -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SR Logística e Transporte | Excelência Corporativa</title>
     <!-- Google Fonts -->
@@ -12,23 +13,60 @@
     <!-- FontAwesome (Ícones) -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
-    <!-- ======================================= -->
-    <!-- CORREÇÕES PARA VISUALIZAÇÃO NO CELULAR  -->
-    <!-- ======================================= -->
+
+    <!-- Estilos Responsivos Globais -->
     <style>
+        html,
+        body {
+            width: 100% !important;
+            max-width: 100% !important;
+            overflow-x: hidden !important;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Overlay do Modal */
+        .modal-overlay {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            background: rgba(0, 0, 0, 0.75) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            z-index: 10000 !important;
+            padding: 15px !important;
+            box-sizing: border-box !important;
+        }
+
+        /* Conteúdo do Modal */
+        .modal-content {
+            position: relative !important;
+            width: 100% !important;
+            max-width: 420px !important;
+            background: #ffffff !important;
+            padding: 35px 20px 20px 20px !important;
+            border-radius: 12px !important;
+            text-align: center !important;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+            box-sizing: border-box !important;
+            max-height: 88vh !important;
+            overflow-y: auto !important;
+            margin: auto !important;
+        }
+
         @media (max-width: 768px) {
 
-            /* 1. Força as colunas do site a ficarem uma embaixo da outra */
             .split-layout,
             .services-grid,
             .contact-grid {
                 display: grid !important;
                 grid-template-columns: 1fr !important;
-                /* Uma coluna só */
                 gap: 20px !important;
             }
 
-            /* 2. Ajusta o menu do topo e textos para não quebrarem */
             .nav-container {
                 flex-direction: column !important;
                 text-align: center;
@@ -41,25 +79,7 @@
             }
 
             .hero-content h1 {
-                font-size: 2rem !important;
-                /* Diminui o textão inicial */
-            }
-
-            /* 3. Garante que o Pop-up fique grande e legível no celular */
-            .modal-overlay {
-                padding: 15px;
-                /* Dá uma margenzinha para não grudar na borda do celular */
-            }
-
-            .modal-content {
-                width: 100% !important;
-                max-width: 100% !important;
-                padding: 40px 15px 25px 15px !important;
-            }
-
-            #modal-image {
-                max-height: 250px !important;
-                /* Mantém a imagem num tamanho bom */
+                font-size: 1.8rem !important;
             }
         }
     </style>
@@ -172,7 +192,7 @@
                     <div class="contact-item">
                         <i class="fab fa-whatsapp"></i>
                         <h4>Telefone / WhatsApp</h4>
-                        <p><a href="https://wa.me/5592984162443">(92) 98416-2443</a></p>
+                        <p><a href="https://wa.me/559291306160">(92) 9130-6160</a></p>
                     </div>
                     <div class="contact-item">
                         <i class="fas fa-envelope"></i>
@@ -203,10 +223,8 @@
     </section>
 
     <!-- Pop-up Modal Dinâmico -->
-    <div id="promo-modal" class="modal-overlay hidden"
-        style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.7); display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 15px; box-sizing: border-box;">
-        <div class="modal-content"
-            style="position: relative; width: 100%; max-width: 420px; background: #ffffff; padding: 35px 20px 20px 20px; border-radius: 12px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); box-sizing: border-box; max-height: 90vh; overflow-y: auto;">
+    <div id="promo-modal" class="modal-overlay hidden">
+        <div class="modal-content">
 
             <!-- Botão Fechar -->
             <button id="close-modal" aria-label="Fechar pop-up"
@@ -214,30 +232,29 @@
 
             <span id="modal-badge" class="badge" style="margin-bottom: 12px; display: inline-block;">Aviso</span>
 
-            <!-- Imagem Responsiva Inteira (sem cortar) -->
+            <!-- Imagem Responsiva -->
             <img id="modal-image" src="" alt="Imagem da publicação" class="hidden"
-                style="width: 100%; height: auto; max-height: 300px; object-fit: contain; margin-bottom: 12px; border-radius: 8px; display: block;">
+                style="width: 100%; height: auto; max-height: 280px; object-fit: contain; margin-bottom: 12px; border-radius: 8px; display: block;">
 
             <h2 id="modal-title" style="margin-bottom: 8px; color: #111; font-size: 1.3rem;">Carregando...</h2>
             <p id="modal-text" style="color: #444; font-size: 0.95rem; margin: 0 0 15px 0;"></p>
 
-            <!-- Botão do WhatsApp -->
+            <!-- Botão do WhatsApp no Modal -->
             <a href="https://wa.me/559291306160" target="_blank"
                 style="background-color: #25D366; color: white; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; box-sizing: border-box;">
                 <i class="fab fa-whatsapp" style="font-size: 1.2rem;"></i> Falar no WhatsApp
             </a>
         </div>
     </div>
-    <!-- ======================================= -->
-    <!-- BOTÃO FLUTUANTE DO WHATSAPP             -->
-    <!-- ======================================= -->
+
+    <!-- Botão Flutuante do WhatsApp -->
     <style>
         .whatsapp-float {
             position: fixed;
             width: 60px;
             height: 60px;
-            bottom: 40px;
-            right: 40px;
+            bottom: 30px;
+            right: 30px;
             background-color: #25d366;
             color: #FFF;
             border-radius: 50px;
@@ -258,7 +275,6 @@
             color: #FFF;
         }
 
-        /* Fica um pouco menor na tela do celular para não atrapalhar a leitura */
         @media (max-width: 768px) {
             .whatsapp-float {
                 width: 50px;
@@ -272,7 +288,7 @@
     <a href="https://wa.me/559291306160" class="whatsapp-float" target="_blank" aria-label="Fale conosco no WhatsApp">
         <i class="fab fa-whatsapp"></i>
     </a>
-    <!-- ======================================= -->
+
     <!-- Rodapé -->
     <footer>
         <div class="container">
@@ -285,7 +301,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
-        // Isolamento de código para evitar conflitos
         (() => {
             const URL = 'https://lvdplhnbkkmlcxeuqhdo.supabase.co';
             const KEY = 'sb_publishable_CoC8vHLwAQ3kGsXwWBlaoA_4LB5SzsK';
@@ -298,7 +313,6 @@
                 const btnCloseModal = document.getElementById('close-modal');
 
                 try {
-                    // 1. Busca os posts do banco
                     const { data: posts, error } = await supabaseClient
                         .from('posts')
                         .select('*')
@@ -306,14 +320,12 @@
 
                     if (error) throw error;
 
-                    // 2. Preenche o Feed no fim da página (Agora com suporte a imagem)
                     if (postsContainer) {
                         if (!posts || posts.length === 0) {
                             postsContainer.innerHTML = '<p style="grid-column: 1 / -1; text-align: center;">Nenhuma novidade no momento.</p>';
                         } else {
                             postsContainer.innerHTML = posts.map(post => {
                                 const isPromo = post.type === 'promo';
-                                // Gera a tag da imagem APENAS se houver imagem salva no banco
                                 const imgHtml = post.image_url ? `<img src="${post.image_url}" class="feed-img" alt="Imagem da postagem">` : '';
 
                                 return `
@@ -332,14 +344,13 @@
                         }
                     }
 
-                    // 3. Lógica do Pop-up (Modal) com suporte a imagem
                     if (posts && posts.length > 0) {
                         const latestPost = posts[0];
 
-                        // Regra de 24 horas ativada
+                        // Regra de exibição (24 horas)
                         const lastClosedTime = localStorage.getItem('sr_modal_closed_time');
                         const now = new Date().getTime();
-                        const shouldShowModal = true; // Forçando aparecer sempre para testar
+                        const shouldShowModal = !lastClosedTime || (now - parseInt(lastClosedTime)) > 86400000;
 
                         if (shouldShowModal && modalOverlay) {
                             document.getElementById('modal-title').textContent = latestPost.title;
@@ -350,7 +361,6 @@
                             badge.style.backgroundColor = latestPost.type === 'promo' ? '#dc3545' : '#007bff';
                             badge.style.color = 'white';
 
-                            // Lógica de exibição da Imagem no Modal
                             const modalImg = document.getElementById('modal-image');
                             if (latestPost.image_url) {
                                 modalImg.src = latestPost.image_url;
@@ -367,7 +377,6 @@
                     console.error('Erro ao conectar com Supabase:', err);
                 }
 
-                // 4. Fechar o Modal
                 if (btnCloseModal && modalOverlay) {
                     btnCloseModal.addEventListener('click', () => {
                         modalOverlay.classList.add('hidden');
