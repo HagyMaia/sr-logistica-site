@@ -12,6 +12,11 @@
         const modal = document.getElementById('promo-modal');
         const closeModal = document.getElementById('close-modal');
         const revealObserver = new IntersectionObserver((entries, observer) => entries.forEach(entry => { if (entry.isIntersecting) { entry.target.classList.add('active'); observer.unobserve(entry.target); } }), { threshold: .12, rootMargin: '0px 0px -35px 0px' });
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = themeToggle?.querySelector('i');
+        const setTheme = (dark) => { document.body.classList.toggle('dark-mode', dark); themeIcon?.classList.toggle('fa-moon', !dark); themeIcon?.classList.toggle('fa-sun', dark); themeToggle?.setAttribute('aria-label', dark ? 'Ativar modo claro' : 'Ativar modo escuro'); };
+        setTheme(localStorage.getItem('sr-theme') === 'dark');
+        themeToggle?.addEventListener('click', () => { const dark = !document.body.classList.contains('dark-mode'); setTheme(dark); localStorage.setItem('sr-theme', dark ? 'dark' : 'light'); });
 
         navToggle?.addEventListener('click', () => { const open = navLinks.classList.toggle('open'); navToggle.setAttribute('aria-expanded', String(open)); navToggle.querySelector('i').classList.toggle('fa-bars', !open); navToggle.querySelector('i').classList.toggle('fa-xmark', open); });
         navLinks?.querySelectorAll('a').forEach(link => link.addEventListener('click', () => { navLinks.classList.remove('open'); navToggle?.setAttribute('aria-expanded', 'false'); navToggle?.querySelector('i')?.classList.replace('fa-xmark', 'fa-bars'); }));
