@@ -1,94 +1,36 @@
-document.addEventListener('DOMContentLoaded', () => {
-    // 1. Theme Toggle Logic
-    const themeToggleBtn = document.getElementById('theme-toggle');
-    const themeIcon = themeToggleBtn.querySelector('i');
+(() => {
+    const SUPABASE_URL = 'https://lvdplhnbkkmlcxeuqhdo.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_CoC8vHLwAQ3kGsXwWBlaoA_4LB5SzsK';
 
-    // Check local storage for theme preference
-    const currentTheme = localStorage.getItem('theme');
-    if (currentTheme === 'dark') {
-        document.body.classList.add('dark-mode');
-        themeIcon.classList.remove('fa-moon');
-        themeIcon.classList.add('fa-sun');
-    }
+    const escapeHTML = (value) => { const div = document.createElement('div'); div.textContent = value ?? ''; return div.innerHTML; };
+    const dateLabel = (value) => value ? new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(value)) : '';
 
-    themeToggleBtn.addEventListener('click', () => {
-        document.body.classList.toggle('dark-mode');
+    document.addEventListener('DOMContentLoaded', async () => {
+        const navToggle = document.getElementById('nav-toggle');
+        const navLinks = document.getElementById('nav-links');
+        const postsContainer = document.getElementById('posts-feed');
+        const modal = document.getElementById('promo-modal');
+        const closeModal = document.getElementById('close-modal');
+        const revealObserver = new IntersectionObserver((entries, observer) => entries.forEach(entry => { if (entry.isIntersecting) { entry.target.classList.add('active'); observer.unobserve(entry.target); } }), { threshold: .12, rootMargin: '0px 0px -35px 0px' });
 
-        let theme = 'light';
-        if (document.body.classList.contains('dark-mode')) {
-            theme = 'dark';
-            themeIcon.classList.remove('fa-moon');
-            themeIcon.classList.add('fa-sun');
-        } else {
-            themeIcon.classList.remove('fa-sun');
-            themeIcon.classList.add('fa-moon');
-        }
+        navToggle?.addEventListener('click', () => { const open = navLinks.classList.toggle('open'); navToggle.setAttribute('aria-expanded', String(open)); navToggle.querySelector('i').classList.toggle('fa-bars', !open); navToggle.querySelector('i').classList.toggle('fa-xmark', open); });
+        navLinks?.querySelectorAll('a').forEach(link => link.addEventListener('click', () => { navLinks.classList.remove('open'); navToggle?.setAttribute('aria-expanded', 'false'); navToggle?.querySelector('i')?.classList.replace('fa-xmark', 'fa-bars'); }));
+        document.querySelectorAll('.reveal').forEach(element => revealObserver.observe(element));
 
-        localStorage.setItem('theme', theme);
-    });
+        const closeAnnouncement = () => { modal?.classList.add('hidden'); if (modal) localStorage.setItem('sr_modal_closed_time', String(Date.now())); };
+        closeModal?.addEventListener('click', closeAnnouncement);
+        modal?.addEventListener('click', event => { if (event.target === modal) closeAnnouncement(); });
+        document.addEventListener('keydown', event => { if (event.key === 'Escape') closeAnnouncement(); });
 
-    // 2. Dynamic Info Rendering (App Prep)
-    const renderInfo = async () => {
-        const container = document.getElementById('dynamic-content-container');
-        if (!container) return;
-
-        if (SUPABASE_URL === 'SUA_SUPABASE_PROJECT_URL_AQUI') {
-            container.innerHTML = '<p style="grid-column: 1 / -1; color: var(--text-muted);">Mural em configuração (Aguardando chaves do Supabase).</p>';
-            return;
-        }
-
+        if (!window.supabase || !postsContainer) return;
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         try {
-            const { data: infoData, error } = await supabase
-                .from('posts')
-                .select('*')
-                .order('created_at', { ascending: false });
-
+            const { data: posts, error } = await supabase.from('posts').select('*').order('created_at', { ascending: false });
             if (error) throw error;
-
-            if (!infoData || infoData.length === 0) {
-                container.innerHTML = '<p style="grid-column: 1 / -1; color: var(--text-muted);">Nenhuma novidade no momento.</p>';
-                return;
-            }
-
-            container.innerHTML = infoData.map(item => `
-                <div class="service-card reveal">
-                    <div class="service-icon"><i class="fas ${item.type === 'promo' ? 'fa-tag' : 'fa-bullhorn'}"></i></div>
-                    <h3>${item.title}</h3>
-                    <p>${item.content}</p>
-                </div>
-            `).join('');
-
-            // Re-aplica animação aos novos elementos
-            const newReveals = container.querySelectorAll('.reveal');
-            newReveals.forEach(reveal => revealOnScroll.observe(reveal));
-
-        } catch (error) {
-            console.error('Erro ao buscar do Supabase:', error);
-            container.innerHTML = '<p style="grid-column: 1 / -1; color: var(--text-muted);">Erro ao carregar informações.</p>';
-        }
-    };
-    renderInfo();
-
-    // 3. Scroll Reveal Animation using Intersection Observer
-    const reveals = document.querySelectorAll('.reveal');
-
-    const revealOptions = {
-        threshold: 0.15, // Trigger when 15% of the element is visible
-        rootMargin: "0px 0px -50px 0px"
-    };
-
-    const revealOnScroll = new IntersectionObserver(function (entries, observer) {
-        entries.forEach(entry => {
-            if (!entry.isIntersecting) {
-                return;
-            } else {
-                entry.target.classList.add('active');
-                observer.unobserve(entry.target); // Stop observing once revealed
-            }
-        });
-    }, revealOptions);
-
-    reveals.forEach(reveal => {
-        revealOnScroll.observe(reveal);
+            if (!posts?.length) { postsContainer.innerHTML = '<p class="loading-text">Nenhuma atualização no momento.</p>'; return; }
+            postsContainer.innerHTML = posts.map(post => { const promo = post.type === 'promo'; return `<article class="post-card ${promo ? 'promo-card' : ''} reveal active"><span class="post-badge"><i class="fas ${promo ? 'fa-tag' : 'fa-bullhorn'}"></i> ${promo ? 'PROMOÇÃO' : 'AVISO OPERACIONAL'}</span><h3 class="post-title">${escapeHTML(post.title)}</h3><p class="post-content">${escapeHTML(post.content)}</p><small class="post-date">${dateLabel(post.created_at)}</small></article>`; }).join('');
+            const lastClosed = Number(localStorage.getItem('sr_modal_closed_time') || 0);
+            if (Date.now() - lastClosed > 86400000 && modal) { const latest = posts[0]; document.getElementById('modal-badge').textContent = latest.type === 'promo' ? 'PROMOÇÃO' : 'AVISO OPERACIONAL'; document.getElementById('modal-title').textContent = latest.title; document.getElementById('modal-text').textContent = latest.content; const image = document.getElementById('modal-image'); if (latest.image_url) { image.src = latest.image_url; image.alt = latest.title; image.classList.remove('hidden'); } modal.classList.remove('hidden'); }
+        } catch (error) { postsContainer.innerHTML = '<p class="loading-text">As atualizações estarão disponíveis em breve.</p>'; console.error('Erro ao carregar atualizações:', error); }
     });
-});
+})();

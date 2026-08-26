@@ -1,391 +1,50 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
     <meta charset="UTF-8">
-    <!-- Viewport obrigatório para responsividade -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SR Logística e Transporte | Excelência Corporativa</title>
-    <!-- Google Fonts -->
+    <meta name="description" content="SR Logística e Transporte: mobilidade corporativa segura, pontual e sob medida em Manaus.">
+    <title>SR Logística | Mobilidade que mantém sua operação em movimento</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <!-- FontAwesome (Ícones) -->
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
-
-    <!-- Estilos Responsivos Globais -->
-    <style>
-        html,
-        body {
-            width: 100% !important;
-            max-width: 100% !important;
-            overflow-x: hidden !important;
-            margin: 0;
-            padding: 0;
-        }
-
-        /* Overlay do Modal */
-        .modal-overlay {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            background: rgba(0, 0, 0, 0.75) !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            z-index: 10000 !important;
-            padding: 15px !important;
-            box-sizing: border-box !important;
-        }
-
-        /* Conteúdo do Modal */
-        .modal-content {
-            position: relative !important;
-            width: 100% !important;
-            max-width: 420px !important;
-            background: #ffffff !important;
-            padding: 35px 20px 20px 20px !important;
-            border-radius: 12px !important;
-            text-align: center !important;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
-            box-sizing: border-box !important;
-            max-height: 88vh !important;
-            overflow-y: auto !important;
-            margin: auto !important;
-        }
-
-        @media (max-width: 768px) {
-
-            .split-layout,
-            .services-grid,
-            .contact-grid {
-                display: grid !important;
-                grid-template-columns: 1fr !important;
-                gap: 20px !important;
-            }
-
-            .nav-container {
-                flex-direction: column !important;
-                text-align: center;
-                gap: 15px;
-            }
-
-            .nav-links {
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-
-            .hero-content h1 {
-                font-size: 1.8rem !important;
-            }
-        }
-    </style>
 </head>
-
 <body>
-    <!-- Navbar (Sticky) -->
-    <nav class="navbar">
+    <nav class="navbar" aria-label="Navegação principal">
         <div class="container nav-container">
-            <div class="logo">SR Logística</div>
-            <ul class="nav-links">
-                <li><a href="#sobre">Quem Somos</a></li>
-                <li><a href="#servicos">Serviços</a></li>
-                <li><a href="#contato" class="btn btn-outline">Fale Conosco</a></li>
-                <li><a href="admin.html" class="btn btn-primary" style="padding: 0.5rem 1rem; font-size: 0.9rem;"><i
-                            class="fas fa-lock"></i> Admin</a></li>
-                <li>
-                    <button id="theme-toggle" class="theme-toggle" aria-label="Alternar Modo Escuro/Claro">
-                        <i class="fas fa-moon"></i>
-                    </button>
-                </li>
-            </ul>
+            <a class="logo" href="#inicio" aria-label="SR Logística, início"><span class="brand-mark">SR</span><span>SR <em>Logística</em></span></a>
+            <button class="nav-toggle" id="nav-toggle" aria-label="Abrir menu" aria-expanded="false"><i class="fas fa-bars"></i></button>
+            <div class="nav-links" id="nav-links">
+                <a href="#solucoes">Soluções</a><a href="#empresa">A empresa</a><a href="#novidades">Atualizações</a><a href="#contato" class="nav-cta">Falar com a equipe <i class="fas fa-arrow-up-right-from-square"></i></a>
+            </div>
         </div>
     </nav>
 
-    <!-- Hero Section -->
-    <header class="hero">
-        <div class="hero-overlay"></div>
-        <div class="container hero-content">
-            <h1 class="reveal">Soluções Especializadas e Seguras em Transporte Corporativo</h1>
-            <p class="reveal">Excelência, conforto e pontualidade para a sua empresa.</p>
-            <a href="#contato" class="btn btn-primary reveal">Agende uma Reunião <i class="fas fa-arrow-right"></i></a>
-        </div>
-    </header>
-
-    <!-- Sobre Nós -->
-    <section id="sobre" class="section">
-        <div class="container split-layout">
-            <div class="split-content reveal">
-                <h2 class="section-title">Quem Somos</h2>
-                <p>A <strong>SR Logística e Transporte LTDA</strong> é uma empresa especializada em serviços de
-                    transporte privado de passageiros. Nosso compromisso inegociável é com a segurança, pontualidade,
-                    conforto e a excelência no atendimento de cada um de nossos clientes.</p>
-                <p>Nossa atuação é fortemente focada no segmento corporativo. Oferecemos soluções personalizadas para
-                    atender às necessidades de indústrias e fábricas que buscam garantir o deslocamento eficiente de
-                    seus colaboradores.</p>
-                <h3 class="subtitle">Nosso Propósito</h3>
-                <p>Temos como principal objetivo contribuir para a produtividade e o bem-estar das suas equipes.
-                    Asseguramos deslocamentos confiáveis, reduzindo atrasos operacionais para que a gestão da sua
-                    empresa foque no seu negócio.</p>
+    <main id="inicio">
+        <section class="hero">
+            <div class="hero-image"></div><div class="hero-shade"></div>
+            <div class="container hero-content">
+                <div class="hero-copy reveal"><span class="eyebrow light">Transporte corporativo · Manaus/AM</span><h1>Mobilidade que mantém sua operação <i>em movimento.</i></h1><p>Rotas confiáveis para pessoas, turnos e decisões importantes. A SR cuida do deslocamento para sua empresa cuidar do que importa.</p><div class="hero-actions"><a class="btn btn-primary" href="https://wa.me/559291306160" target="_blank">Planejar uma rota <i class="fab fa-whatsapp"></i></a><a class="hero-text-link" href="#solucoes">Conheça nossas soluções <i class="fas fa-arrow-down"></i></a></div></div>
+                <div class="hero-foot"><span>SR LOGÍSTICA E TRANSPORTE LTDA</span><span class="route-line"><i></i><i></i><i></i></span><span>52.967.828/0001-17</span></div>
             </div>
-            <div class="split-image reveal">
-                <img src="assets/img/sobre_taxi.png" alt="Táxi executivo branco padrão corporativo do Brasil">
-                <div class="image-accent"></div>
-            </div>
-        </div>
-    </section>
+        </section>
 
-    <!-- Serviços -->
-    <section id="servicos" class="section bg-light">
-        <div class="container text-center">
-            <h2 class="section-title center reveal">Nossos Serviços</h2>
-            <p class="section-description reveal">Soluções sob medida para otimizar o fluxo da sua operação.</p>
-            <div class="services-grid">
-                <div class="service-card reveal">
-                    <div class="service-icon"><i class="fas fa-bus"></i></div>
-                    <h3>Transporte Diário</h3>
-                    <p>Foco total em pontualidade para colaboradores no trajeto diário.</p>
-                </div>
-                <div class="service-card reveal">
-                    <div class="service-icon"><i class="fas fa-industry"></i></div>
-                    <h3>Logística Industrial</h3>
-                    <p>Logística eficiente para trocas de turnos em indústrias e fábricas.</p>
-                </div>
-                <div class="service-card reveal">
-                    <div class="service-icon"><i class="fas fa-user-tie"></i></div>
-                    <h3>Transporte Executivo</h3>
-                    <p>Alto padrão e discrição para gestores, diretores e visitantes ilustres.</p>
-                </div>
-                <div class="service-card reveal">
-                    <div class="service-icon"><i class="fas fa-calendar-alt"></i></div>
-                    <h3>Eventos Corporativos</h3>
-                    <p>Serviços dedicados com frota coordenada para eventos e congressos.</p>
-                </div>
-                <div class="service-card reveal">
-                    <div class="service-icon"><i class="fas fa-route"></i></div>
-                    <h3>Rotas Personalizadas</h3>
-                    <p>Planejamento estratégico desenhado conforme a necessidade da operação.</p>
-                </div>
-                <div class="service-card reveal">
-                    <div class="service-icon"><i class="fas fa-shield-alt"></i></div>
-                    <h3>Manutenção Preventiva</h3>
-                    <p>Frota moderna e segura, com motoristas treinados e profissionais.</p>
-                </div>
-            </div>
-        </div>
-    </section>
+        <section class="signal-strip"><div class="container signal-grid"><div><strong>Segurança em cada embarque</strong></div><div><strong>Pontualidade para cada turno</strong></div><div><strong>Operação desenhada para você</strong></div></div></section>
 
-    <!-- Contato -->
-    <section id="contato" class="section bg-light">
-        <div class="container">
-            <div class="contact-box reveal">
-                <h2 class="section-title center">Fale Conosco</h2>
-                <div class="contact-grid">
-                    <div class="contact-item">
-                        <i class="fas fa-user-circle"></i>
-                        <h4>Responsável</h4>
-                        <p>Silvio Ramos Martins</p>
-                    </div>
-                    <div class="contact-item">
-                        <i class="fab fa-whatsapp"></i>
-                        <h4>Telefone / WhatsApp</h4>
-                        <p><a href="https://wa.me/559291306160">(92) 9130-6160</a></p>
-                    </div>
-                    <div class="contact-item">
-                        <i class="fas fa-envelope"></i>
-                        <h4>E-mail</h4>
-                        <p><a href="mailto:srlogistica21@gmail.com">srlogistica21@gmail.com</a></p>
-                    </div>
-                    <div class="contact-item">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <h4>Endereço</h4>
-                        <p>Rua Rio Capauati, 24<br>São José Operário<br>Manaus/AM - CEP: 69086-070</p>
-                    </div>
-                </div>
-                <div class="fiscal-info">
-                    <p><strong>SR LOGÍSTICA E TRANSPORTES LTDA</strong> | CNPJ: 52.967.828/0001-17</p>
-                </div>
-            </div>
-        </div>
-    </section>
+        <section id="solucoes" class="section solutions-section"><div class="container"><div class="section-heading reveal"><span class="eyebrow">O que fazemos</span><h2>Transporte pensado como parte da sua operação.</h2><p>Do planejamento da rota ao último desembarque, entregamos uma experiência estável para equipes e gestores.</p></div><div class="solutions-grid"><article class="solution-card reveal"><i class="fas fa-industry"></i><h3>Rotas industriais</h3><p>Deslocamento organizado para trocas de turno e unidades industriais.</p><a href="#contato" aria-label="Saiba mais sobre rotas industriais"><i class="fas fa-arrow-right"></i></a></article><article class="solution-card featured reveal"><i class="fas fa-clock"></i><h3>Transporte diário</h3><p>Mais previsibilidade no trajeto dos seus colaboradores, todos os dias.</p><a href="#contato" aria-label="Saiba mais sobre transporte diário"><i class="fas fa-arrow-right"></i></a></article><article class="solution-card reveal"><i class="fas fa-user-tie"></i><h3>Executivo</h3><p>Conforto e discrição para lideranças, clientes e visitantes.</p><a href="#contato" aria-label="Saiba mais sobre transporte executivo"><i class="fas fa-arrow-right"></i></a></article><article class="solution-card reveal"><i class="fas fa-calendar-check"></i><h3>Eventos</h3><p>Frota coordenada para congressos, feiras e encontros corporativos.</p><a href="#contato" aria-label="Saiba mais sobre transporte para eventos"><i class="fas fa-arrow-right"></i></a></article><article class="solution-card reveal"><i class="fas fa-route"></i><h3>Rotas sob medida</h3><p>Planejamento estratégico conforme o ritmo da sua operação.</p><a href="#contato" aria-label="Saiba mais sobre rotas sob medida"><i class="fas fa-arrow-right"></i></a></article></div></div></section>
 
-    <!-- Seção de Postagens / Avisos -->
-    <section id="novidades" class="section-news">
-        <div class="container">
-            <h2 class="section-title center reveal">Novidades e Promoções</h2>
-            <div id="posts-feed" class="services-grid">
-                <p class="loading-text">Carregando novidades...</p>
-            </div>
-        </div>
-    </section>
+        <section id="empresa" class="section company-section"><div class="container company-grid"><div class="company-visual reveal"><img src="assets/img/sobre_taxi.png" alt="Veículo da SR Logística preparado para transporte corporativo"><span class="visual-label">Frota pronta<br>para o próximo turno</span><div class="visual-rule"></div></div><div class="company-copy reveal"><span class="eyebrow">A SR por perto</span><h2>Confiabilidade não acontece por acaso.</h2><p>Somos uma empresa de transporte privado de passageiros com foco no segmento corporativo. Em cada rota, combinamos planejamento, atendimento próximo e uma equipe preparada.</p><p>Nosso trabalho é reduzir a fricção do deslocamento e dar mais tranquilidade para quem administra pessoas, horários e resultados.</p><div class="company-signature"><span class="brand-mark">SR</span><span><strong>Silvio Ramos Martins</strong><small>Responsável pela operação</small></span></div></div></div></section>
 
-    <!-- Pop-up Modal Dinâmico -->
-    <div id="promo-modal" class="modal-overlay hidden">
-        <div class="modal-content">
+        <section id="novidades" class="section updates-section"><div class="container"><div class="section-heading compact reveal"><div><span class="eyebrow">Mural da operação</span><h2>Novidades e avisos.</h2></div><p>Informações recentes para acompanhar a nossa operação.</p></div><div id="posts-feed" class="posts-grid"><p class="loading-text">Carregando atualizações...</p></div></div></section>
 
-            <!-- Botão Fechar -->
-            <button id="close-modal" aria-label="Fechar pop-up"
-                style="position: absolute; top: 10px; right: 10px; background: #dc3545; color: white; border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 20px; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; z-index: 10;">&times;</button>
+        <section id="contato" class="contact-section"><div class="container contact-grid"><div class="contact-copy reveal"><span class="eyebrow light">Vamos conversar</span><h2>Uma rota melhor começa com uma boa conversa.</h2><p>Conte o que sua operação precisa. A nossa equipe retorna para entender o cenário e desenhar o próximo passo.</p><a class="btn btn-primary" href="https://wa.me/559291306160" target="_blank"><i class="fab fa-whatsapp"></i> Falar pelo WhatsApp</a></div><div class="contact-details reveal"><div class="detail-row"><i class="fas fa-phone"></i><div><span>Telefone / WhatsApp</span><a href="tel:+559291306160">(92) 9130-6160</a></div></div><div class="detail-row"><i class="fas fa-envelope"></i><div><span>E-mail</span><a href="mailto:srlogistica21@gmail.com">srlogistica21@gmail.com</a></div></div><div class="detail-row"><i class="fas fa-location-dot"></i><div><span>Onde estamos</span><p>Rua Rio Capauati, 24<br>São José Operário · Manaus/AM</p></div></div></div></div></section>
+    </main>
+    <footer><div class="container footer-inner"><a class="logo" href="#inicio"><span class="brand-mark">SR</span><span>SR <em>Logística</em></span></a><span>© 2026 · Transporte com propósito.</span><a href="admin.html">Acesso administrativo <i class="fas fa-arrow-up-right-from-square"></i></a></div></footer>
 
-            <span id="modal-badge" class="badge" style="margin-bottom: 12px; display: inline-block;">Aviso</span>
-
-            <!-- Imagem Responsiva -->
-            <img id="modal-image" src="" alt="Imagem da publicação" class="hidden"
-                style="width: 100%; height: auto; max-height: 280px; object-fit: contain; margin-bottom: 12px; border-radius: 8px; display: block;">
-
-            <h2 id="modal-title" style="margin-bottom: 8px; color: #111; font-size: 1.3rem;">Carregando...</h2>
-            <p id="modal-text" style="color: #444; font-size: 0.95rem; margin: 0 0 15px 0;"></p>
-
-            <!-- Botão do WhatsApp no Modal -->
-            <a href="https://wa.me/559291306160" target="_blank"
-                style="background-color: #25D366; color: white; padding: 12px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; box-sizing: border-box;">
-                <i class="fab fa-whatsapp" style="font-size: 1.2rem;"></i> Falar no WhatsApp
-            </a>
-        </div>
-    </div>
-
-    <!-- Botão Flutuante do WhatsApp -->
-    <style>
-        .whatsapp-float {
-            position: fixed;
-            width: 60px;
-            height: 60px;
-            bottom: 30px;
-            right: 30px;
-            background-color: #25d366;
-            color: #FFF;
-            border-radius: 50px;
-            text-align: center;
-            font-size: 35px;
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
-            z-index: 9999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-            text-decoration: none;
-        }
-
-        .whatsapp-float:hover {
-            background-color: #20b858;
-            transform: scale(1.1);
-            color: #FFF;
-        }
-
-        @media (max-width: 768px) {
-            .whatsapp-float {
-                width: 50px;
-                height: 50px;
-                bottom: 20px;
-                right: 20px;
-                font-size: 28px;
-            }
-        }
-    </style>
-    <a href="https://wa.me/559291306160" class="whatsapp-float" target="_blank" aria-label="Fale conosco no WhatsApp">
-        <i class="fab fa-whatsapp"></i>
-    </a>
-
-    <!-- Rodapé -->
-    <footer>
-        <div class="container">
-            <p>&copy; 2026 SR Logística e Transporte. Todos os direitos reservados.</p>
-        </div>
-    </footer>
-
-    <!-- Scripts do Site -->
-    <script src="script.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-    <script>
-        (() => {
-            const URL = 'https://lvdplhnbkkmlcxeuqhdo.supabase.co';
-            const KEY = 'sb_publishable_CoC8vHLwAQ3kGsXwWBlaoA_4LB5SzsK';
-
-            const supabaseClient = window.supabase.createClient(URL, KEY);
-
-            document.addEventListener('DOMContentLoaded', async () => {
-                const postsContainer = document.getElementById('posts-feed');
-                const modalOverlay = document.getElementById('promo-modal');
-                const btnCloseModal = document.getElementById('close-modal');
-
-                try {
-                    const { data: posts, error } = await supabaseClient
-                        .from('posts')
-                        .select('*')
-                        .order('created_at', { ascending: false });
-
-                    if (error) throw error;
-
-                    if (postsContainer) {
-                        if (!posts || posts.length === 0) {
-                            postsContainer.innerHTML = '<p style="grid-column: 1 / -1; text-align: center;">Nenhuma novidade no momento.</p>';
-                        } else {
-                            postsContainer.innerHTML = posts.map(post => {
-                                const isPromo = post.type === 'promo';
-                                const imgHtml = post.image_url ? `<img src="${post.image_url}" class="feed-img" alt="Imagem da postagem">` : '';
-
-                                return `
-                                <article class="service-card reveal">
-                                    <div class="service-icon" style="font-size: 1rem; padding: 5px 10px; width: max-content; margin: 0 auto 15px auto; border-radius: 20px; background: ${isPromo ? '#dc3545' : '#007bff'}; color: white;">
-                                        ${isPromo ? '🏷️ Promoção' : '📢 Aviso'}
-                                    </div>
-                                    ${imgHtml}
-                                    <h3 style="margin-top: 15px;">${post.title}</h3>
-                                    <p>${post.content}</p>
-                                    <small style="display: block; margin-top: 15px; color: #777;">
-                                        ${new Date(post.created_at).toLocaleDateString('pt-BR')}
-                                    </small>
-                                </article>`;
-                            }).join('');
-                        }
-                    }
-
-                    if (posts && posts.length > 0) {
-                        const latestPost = posts[0];
-
-                        // Regra de exibição (24 horas)
-                        const lastClosedTime = localStorage.getItem('sr_modal_closed_time');
-                        const now = new Date().getTime();
-                        const shouldShowModal = true; // Forçando aparecer sempre para testar
-
-                        if (shouldShowModal && modalOverlay) {
-                            document.getElementById('modal-title').textContent = latestPost.title;
-                            document.getElementById('modal-text').textContent = latestPost.content;
-
-                            const badge = document.getElementById('modal-badge');
-                            badge.textContent = latestPost.type === 'promo' ? 'PROMOÇÃO' : 'AVISO IMPORTANTE';
-                            badge.style.backgroundColor = latestPost.type === 'promo' ? '#dc3545' : '#007bff';
-                            badge.style.color = 'white';
-
-                            const modalImg = document.getElementById('modal-image');
-                            if (latestPost.image_url) {
-                                modalImg.src = latestPost.image_url;
-                                modalImg.classList.remove('hidden');
-                            } else {
-                                modalImg.classList.add('hidden');
-                            }
-
-                            modalOverlay.classList.remove('hidden');
-                        }
-                    }
-
-                } catch (err) {
-                    console.error('Erro ao conectar com Supabase:', err);
-                }
-
-                if (btnCloseModal && modalOverlay) {
-                    btnCloseModal.addEventListener('click', () => {
-                        modalOverlay.classList.add('hidden');
-                        localStorage.setItem('sr_modal_closed_time', new Date().getTime().toString());
-                    });
-                }
-            });
-        })();
-    </script>
+    <div id="promo-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="modal-content"><button id="close-modal" class="close-modal" aria-label="Fechar aviso"><i class="fas fa-xmark"></i></button><span id="modal-badge" class="post-badge">AVISO</span><img id="modal-image" src="" alt="" class="hidden"><h2 id="modal-title">Atualização</h2><p id="modal-text"></p><a class="btn btn-primary" href="https://wa.me/559291306160" target="_blank"><i class="fab fa-whatsapp"></i> Falar com a equipe</a></div></div>
+    <a class="whatsapp-float" href="https://wa.me/559291306160" target="_blank" aria-label="Falar conosco no WhatsApp"><i class="fab fa-whatsapp"></i></a>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="script.js"></script>
 </body>
-
 </html>
