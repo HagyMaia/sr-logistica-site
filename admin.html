@@ -21,62 +21,329 @@
     <main class="admin-shell">
         <!-- Seção de Login -->
         <section class="login-screen" id="login-container" aria-labelledby="login-title">
-            <div class="login-brand"><span class="brand-mark">SR</span><span>SR Logística</span></div>
+            <div class="login-brand">
+                <span class="brand-mark">SR</span>
+                <span>SR Logística</span>
+            </div>
+
             <div class="login-card">
                 <div class="eyebrow">Centro de operações</div>
                 <h1 id="login-title">Acesso ao painel</h1>
                 <p>Controle aprovações, motoristas e comunicados em um só lugar.</p>
+
                 <form id="login-form" novalidate>
                     <div class="form-group">
                         <label for="admin-user">E-mail corporativo</label>
                         <input type="email" id="admin-user" required placeholder="nome@srlogistica.com.br" aria-required="true">
                     </div>
+
                     <div class="form-group">
                         <label for="admin-password">Senha</label>
                         <div class="password-wrapper">
                             <input type="password" id="admin-password" required placeholder="Digite sua senha" aria-required="true">
-                            <button type="button" class="toggle-password" id="togglePassword" aria-label="Mostrar senha"><i class="fas fa-eye" aria-hidden="true"></i></button>
+                            <button type="button" class="toggle-password" id="togglePassword" aria-label="Mostrar senha">
+                                <i class="fas fa-eye" aria-hidden="true"></i>
+                            </button>
                         </div>
                     </div>
+
                     <div class="form-actions">
-                        <button type="submit" class="btn btn-primary"><i class="fas fa-arrow-right" aria-hidden="true"></i> Entrar no painel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-arrow-right" aria-hidden="true"></i> Entrar no painel
+                        </button>
                         <a href="#" id="forgot-password" class="forgot-link">Redefinir senha</a>
                     </div>
+
                     <div id="login-feedback" class="feedback-msg" aria-live="polite"></div>
                 </form>
             </div>
-            <p class="login-footer"><i class="fas fa-shield-halved"></i> Ambiente protegido para a equipe SR</p>
+
+            <p class="login-footer">
+                <i class="fas fa-shield-halved"></i> Ambiente protegido para a equipe SR
+            </p>
         </section>
 
         <!-- Seção do Dashboard (Oculta inicialmente) -->
         <section class="dashboard hidden" id="dashboard-container" aria-labelledby="dashboard-title">
+            <!-- Barra Lateral -->
             <aside class="sidebar">
-                <div class="sidebar-logo"><span class="brand-mark">SR</span><div><strong>SR Logística</strong><small>Operações</small></div></div>
+                <div class="sidebar-logo">
+                    <span class="brand-mark">SR</span>
+                    <div>
+                        <strong>SR Logística</strong>
+                        <small>Operações</small>
+                    </div>
+                </div>
+
                 <nav class="side-nav" aria-label="Seções do painel">
                     <span class="nav-caption">Workspace</span>
-                    <a href="#overview" class="side-link active" data-view="overview"><i class="fas fa-grid-2"></i><span>Visão geral</span></a>
-                    <a href="#approvals" class="side-link" data-view="approvals"><i class="fas fa-user-check"></i><span>Aprovações</span><b id="nav-pending-count">0</b></a>
-                    <a href="#drivers" class="side-link" data-view="drivers"><i class="fas fa-id-card"></i><span>Motoristas</span></a>
+                    <a href="#overview" class="side-link active" data-view="overview">
+                        <i class="fas fa-grid-2"></i>
+                        <span>Visão geral</span>
+                    </a>
+                    <a href="#approvals" class="side-link" data-view="approvals">
+                        <i class="fas fa-user-check"></i>
+                        <span>Aprovações</span>
+                        <b id="nav-pending-count">0</b>
+                    </a>
+                    <a href="#drivers" class="side-link" data-view="drivers">
+                        <i class="fas fa-id-card"></i>
+                        <span>Motoristas</span>
+                    </a>
+
                     <span class="nav-caption">Gestão</span>
-                    <a href="#posts" class="side-link" data-view="posts"><i class="fas fa-bullhorn"></i><span>Comunicados</span></a>
-                    <a href="#security" class="side-link" data-view="security"><i class="fas fa-lock"></i><span>Segurança</span></a>
+                    <a href="#posts" class="side-link" data-view="posts">
+                        <i class="fas fa-bullhorn"></i>
+                        <span>Comunicados</span>
+                    </a>
+                    <a href="#security" class="side-link" data-view="security">
+                        <i class="fas fa-lock"></i>
+                        <span>Segurança</span>
+                    </a>
                 </nav>
-                <div class="sidebar-bottom"><a href="index.html" class="site-link"><i class="fas fa-arrow-up-right-from-square"></i> Ver site público</a><button id="btn-logout" class="logout-link"><i class="fas fa-arrow-right-from-bracket"></i> Sair do painel</button></div>
-            </aside>
-            <div class="dashboard-main">
-                <header class="topbar"><button class="mobile-menu" id="mobile-menu" aria-label="Abrir menu"><i class="fas fa-bars"></i></button><div><span class="topbar-kicker">Terça-feira, 25 de agosto de 2026</span><h1 id="dashboard-title">Visão geral</h1></div><div class="topbar-actions"><span class="status-dot"><i></i> Sistema online</span><div class="avatar" id="admin-avatar">SR</div></div></header>
-                <div id="global-feedback" class="global-feedback" aria-live="polite"></div>
-                <div class="view active-view" id="view-overview">
-                    <section class="welcome-panel"><div><span class="eyebrow">Centro de operações</span><h2>Bom trabalho, equipe.</h2><p>Acompanhe o que precisa da sua atenção hoje.</p></div><div class="welcome-mark"><i class="fas fa-route"></i></div></section>
-                    <div class="metric-grid"><article class="metric-card"><span class="metric-label">Aguardando análise</span><strong id="metric-pending">--</strong><span class="metric-note warning"><i class="fas fa-clock"></i> Fila de aprovação</span></article><article class="metric-card"><span class="metric-label">Motoristas aprovados</span><strong id="metric-approved">--</strong><span class="metric-note positive"><i class="fas fa-arrow-trend-up"></i> Base ativa</span></article><article class="metric-card"><span class="metric-label">Comunicados publicados</span><strong id="metric-posts">--</strong><span class="metric-note neutral"><i class="fas fa-calendar"></i> Neste painel</span></article></div>
-                    <div class="content-grid"><section class="panel attention-panel"><div class="panel-heading"><div><span class="eyebrow">Prioridade</span><h2>Solicitações recentes</h2></div><a href="#approvals" data-view="approvals" class="text-link">Ver todas <i class="fas fa-arrow-right"></i></a></div><div id="recent-approvals" class="approval-list"><p class="loading-state">Carregando solicitações...</p></div></section><section class="panel quick-panel"><div class="panel-heading"><div><span class="eyebrow">Atalhos</span><h2>Ações rápidas</h2></div></div><button class="quick-action" data-view="approvals"><i class="fas fa-user-plus"></i><span><strong>Revisar aprovações</strong><small>Analise novos cadastros</small></span><i class="fas fa-chevron-right"></i></button><button class="quick-action" data-view="posts"><i class="fas fa-pen-to-square"></i><span><strong>Novo comunicado</strong><small>Publique uma atualização</small></span><i class="fas fa-chevron-right"></i></button><button class="quick-action" data-view="security"><i class="fas fa-key"></i><span><strong>Atualizar senha</strong><small>Mantenha sua conta segura</small></span><i class="fas fa-chevron-right"></i></button></section></div>
+
+                <div class="sidebar-bottom">
+                    <a href="index.html" class="site-link">
+                        <i class="fas fa-arrow-up-right-from-square"></i> Ver site público
+                    </a>
+                    <button id="btn-logout" class="logout-link">
+                        <i class="fas fa-arrow-right-from-bracket"></i> Sair do painel
+                    </button>
                 </div>
-                <div class="view" id="view-approvals"><div class="page-heading"><div><span class="eyebrow">Entrada de novos parceiros</span><h2>Aprovações de motoristas</h2><p>Revise os documentos e escolha quem pode entrar para a operação.</p></div><button class="btn btn-secondary" id="refresh-approvals"><i class="fas fa-rotate"></i> Atualizar fila</button></div><div class="tabs" role="tablist"><button class="tab active" data-status="pending">Pendentes <b id="pending-tab-count">0</b></button><button class="tab" data-status="approved">Aprovados <b id="approved-tab-count">0</b></button></div><div id="approvals-container" class="approval-table-wrap"><p class="loading-state">Carregando aprovações...</p></div></div>
-                <div class="view" id="view-drivers"><div class="page-heading"><div><span class="eyebrow">Base operacional</span><h2>Motoristas cadastrados</h2><p>Consulte o histórico de aprovação e os dados da sua equipe.</p></div></div><div id="drivers-container" class="driver-grid"><p class="loading-state">Carregando motoristas...</p></div></div>
-                <div class="view" id="view-posts"><div class="page-heading"><div><span class="eyebrow">Comunicação</span><h2>Comunicados</h2><p>Publique avisos e novidades para o site público.</p></div></div><section class="panel post-editor"><form id="admin-form" novalidate><div class="form-grid"><div class="form-group"><label for="post-type">Categoria</label><select id="post-type" required><option value="promo">Promoção</option><option value="info">Aviso operacional</option></select></div><div class="form-group"><label for="post-title">Título</label><input type="text" id="post-title" required placeholder="Ex.: Nova rota disponível"></div></div><div class="form-group"><label for="post-content">Mensagem</label><textarea id="post-content" required placeholder="Escreva o comunicado..."></textarea></div><div class="form-group"><label for="post-image">Imagem <span>(opcional)</span></label><input type="file" id="post-image" accept="image/png, image/jpeg, image/jpg, image/webp"></div><button type="submit" class="btn btn-primary" id="btn-add-post"><i class="fas fa-plus"></i> Publicar comunicado</button><div id="post-feedback" class="feedback-msg" aria-live="polite"></div></form></section><section class="panel posts-list"><div class="panel-heading"><h2>Publicados recentemente</h2></div><div id="posts-container" aria-live="polite"></div></section></div>
-                <div class="view" id="view-security"><div class="page-heading"><div><span class="eyebrow">Acesso da conta</span><h2>Segurança</h2><p>Altere sua senha de acesso ao centro de operações.</p></div></div><section class="panel security-panel"><div class="security-intro"><div class="security-icon"><i class="fas fa-shield-halved"></i></div><div><h3>Atualizar senha</h3><p>Use uma combinação forte com pelo menos 6 caracteres.</p></div></div><form id="password-form" class="password-form"><div class="form-group"><label for="new-password">Nova senha</label><input type="password" id="new-password" minlength="6" required placeholder="Digite a nova senha"></div><div class="form-group"><label for="confirm-password">Confirmar nova senha</label><input type="password" id="confirm-password" minlength="6" required placeholder="Repita a nova senha"></div><button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> Salvar nova senha</button><div id="password-feedback" class="feedback-msg" aria-live="polite"></div></form></section></div>
+            </aside>
+
+            <!-- Conteúdo Principal -->
+            <div class="dashboard-main">
+                <!-- Cabeçalho Topbar -->
+                <header class="topbar">
+                    <button class="mobile-menu" id="mobile-menu" aria-label="Abrir menu">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div>
+                        <span class="topbar-kicker">Hoje</span>
+                        <h1 id="dashboard-title">Visão geral</h1>
+                    </div>
+                    <div class="topbar-actions">
+                        <span class="status-dot"><i></i> Sistema online</span>
+                        <div class="avatar" id="admin-avatar">SR</div>
+                    </div>
+                </header>
+
+                <!-- Feedback Global -->
+                <div id="global-feedback" class="global-feedback" aria-live="polite"></div>
+
+                <!-- 1. Visão Geral -->
+                <div class="view active-view" id="view-overview">
+                    <section class="welcome-panel">
+                        <div>
+                            <span class="eyebrow">Centro de operações</span>
+                            <h2>Bom trabalho, equipe.</h2>
+                            <p>Acompanhe o que precisa da sua atenção hoje.</p>
+                        </div>
+                        <div class="welcome-mark">
+                            <i class="fas fa-route"></i>
+                        </div>
+                    </section>
+
+                    <div class="metric-grid">
+                        <article class="metric-card">
+                            <span class="metric-label">Aguardando análise</span>
+                            <strong id="metric-pending">--</strong>
+                            <span class="metric-note warning"><i class="fas fa-clock"></i> Fila de aprovação</span>
+                        </article>
+                        <article class="metric-card">
+                            <span class="metric-label">Motoristas aprovados</span>
+                            <strong id="metric-approved">--</strong>
+                            <span class="metric-note positive"><i class="fas fa-arrow-trend-up"></i> Base ativa</span>
+                        </article>
+                        <article class="metric-card">
+                            <span class="metric-label">Comunicados publicados</span>
+                            <strong id="metric-posts">--</strong>
+                            <span class="metric-note neutral"><i class="fas fa-calendar"></i> Neste painel</span>
+                        </article>
+                    </div>
+
+                    <div class="content-grid">
+                        <section class="panel attention-panel">
+                            <div class="panel-heading">
+                                <div>
+                                    <span class="eyebrow">Prioridade</span>
+                                    <h2>Solicitações recentes</h2>
+                                </div>
+                                <a href="#approvals" data-view="approvals" class="text-link">Ver todas <i class="fas fa-arrow-right"></i></a>
+                            </div>
+                            <div id="recent-approvals" class="approval-list">
+                                <p class="loading-state">Carregando solicitações...</p>
+                            </div>
+                        </section>
+
+                        <section class="panel quick-panel">
+                            <div class="panel-heading">
+                                <div>
+                                    <span class="eyebrow">Atalhos</span>
+                                    <h2>Ações rápidas</h2>
+                                </div>
+                            </div>
+                            <button class="quick-action" data-view="approvals">
+                                <i class="fas fa-user-plus"></i>
+                                <span>
+                                    <strong>Revisar aprovações</strong>
+                                    <small>Analise novos cadastros</small>
+                                </span>
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                            <button class="quick-action" data-view="posts">
+                                <i class="fas fa-pen-to-square"></i>
+                                <span>
+                                    <strong>Novo comunicado</strong>
+                                    <small>Publique uma atualização</small>
+                                </span>
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                            <button class="quick-action" data-view="security">
+                                <i class="fas fa-key"></i>
+                                <span>
+                                    <strong>Atualizar senha</strong>
+                                    <small>Mantenha sua conta segura</small>
+                                </span>
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </section>
+                    </div>
+                </div>
+
+                <!-- 2. Fila de Aprovações -->
+                <div class="view" id="view-approvals">
+                    <div class="page-heading">
+                        <div>
+                            <span class="eyebrow">Entrada de novos parceiros</span>
+                            <h2>Aprovações de motoristas</h2>
+                            <p>Revise os documentos e escolha quem pode entrar para a operação.</p>
+                        </div>
+                        <button class="btn btn-secondary" id="refresh-approvals">
+                            <i class="fas fa-rotate"></i> Atualizar fila
+                        </button>
+                    </div>
+
+                    <div class="tabs" role="tablist">
+                        <button class="tab active" data-status="pending">
+                            Pendentes <b id="pending-tab-count">0</b>
+                        </button>
+                        <button class="tab" data-status="approved">
+                            Aprovados <b id="approved-tab-count">0</b>
+                        </button>
+                    </div>
+
+                    <div id="approvals-container" class="approval-table-wrap">
+                        <p class="loading-state">Carregando aprovações...</p>
+                    </div>
+                </div>
+
+                <!-- 3. Motoristas Homologados -->
+                <div class="view" id="view-drivers">
+                    <div class="page-heading">
+                        <div>
+                            <span class="eyebrow">Base operacional</span>
+                            <h2>Motoristas cadastrados</h2>
+                            <p>Consulte o histórico de aprovação e os dados da sua equipe.</p>
+                        </div>
+                    </div>
+                    <div id="drivers-container" class="driver-grid">
+                        <p class="loading-state">Carregando motoristas...</p>
+                    </div>
+                </div>
+
+                <!-- 4. Comunicados -->
+                <div class="view" id="view-posts">
+                    <div class="page-heading">
+                        <div>
+                            <span class="eyebrow">Comunicação</span>
+                            <h2>Comunicados</h2>
+                            <p>Publique avisos e novidades para o site público.</p>
+                        </div>
+                    </div>
+
+                    <section class="panel post-editor">
+                        <form id="admin-form" novalidate>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label for="post-type">Categoria</label>
+                                    <select id="post-type" required>
+                                        <option value="promo">Promoção</option>
+                                        <option value="info">Aviso operacional</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="post-title">Título</label>
+                                    <input type="text" id="post-title" required placeholder="Ex.: Nova rota disponível">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="post-content">Mensagem</label>
+                                <textarea id="post-content" required placeholder="Escreva o comunicado..."></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="post-image">Imagem <span>(opcional)</span></label>
+                                <input type="file" id="post-image" accept="image/png, image/jpeg, image/jpg, image/webp">
+                            </div>
+
+                            <button type="submit" class="btn btn-primary" id="btn-add-post">
+                                <i class="fas fa-plus"></i> Publicar comunicado
+                            </button>
+                            <div id="post-feedback" class="feedback-msg" aria-live="polite"></div>
+                        </form>
+                    </section>
+
+                    <section class="panel posts-list">
+                        <div class="panel-heading">
+                            <h2>Publicados recentemente</h2>
+                        </div>
+                        <div id="posts-container" aria-live="polite"></div>
+                    </section>
+                </div>
+
+                <!-- 5. Segurança -->
+                <div class="view" id="view-security">
+                    <div class="page-heading">
+                        <div>
+                            <span class="eyebrow">Acesso da conta</span>
+                            <h2>Segurança</h2>
+                            <p>Altere sua senha de acesso ao centro de operações.</p>
+                        </div>
+                    </div>
+
+                    <section class="panel security-panel">
+                        <div class="security-intro">
+                            <div class="security-icon">
+                                <i class="fas fa-shield-halved"></i>
+                            </div>
+                            <div>
+                                <h3>Atualizar senha</h3>
+                                <p>Use uma combinação forte com pelo menos 6 caracteres.</p>
+                            </div>
+                        </div>
+
+                        <form id="password-form" class="password-form">
+                            <div class="form-group">
+                                <label for="new-password">Nova senha</label>
+                                <input type="password" id="new-password" minlength="6" required placeholder="Digite a nova senha">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="confirm-password">Confirmar nova senha</label>
+                                <input type="password" id="confirm-password" minlength="6" required placeholder="Repita a nova senha">
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-check"></i> Salvar nova senha
+                            </button>
+                            <div id="password-feedback" class="feedback-msg" aria-live="polite"></div>
+                        </form>
+                    </section>
+                </div>
             </div>
-        </section>
         </section>
     </main>
 
