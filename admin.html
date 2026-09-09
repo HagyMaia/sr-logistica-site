@@ -29,7 +29,7 @@
             <div class="login-card">
                 <div class="eyebrow">Centro de operações</div>
                 <h1 id="login-title">Acesso ao painel</h1>
-                <p>Controle aprovações, motoristas e comunicados em um só lugar.</p>
+                <p>Controle aprovações, passageiros, motoristas e comunicados em um só lugar.</p>
 
                 <form id="login-form" novalidate>
                     <div class="form-group">
@@ -78,13 +78,24 @@
                 <nav class="side-nav" aria-label="Seções do painel">
                     <span class="nav-caption">Workspace</span>
                     <a href="#overview" class="side-link active" data-view="overview">
-                        <i class="fas fa-grid-2"></i>
+                        <i class="fas fa-chart-pie"></i>
                         <span>Visão geral</span>
                     </a>
+                    <a href="#passenger-approvals" class="side-link" data-view="passenger-approvals">
+                        <i class="fas fa-users-gear"></i>
+                        <span>Aprovações Passageiros</span>
+                        <b id="nav-passenger-pending-count">0</b>
+                    </a>
                     <a href="#approvals" class="side-link" data-view="approvals">
-                        <i class="fas fa-user-check"></i>
-                        <span>Aprovações</span>
+                        <i class="fas fa-id-card-clip"></i>
+                        <span>Aprovações Motoristas</span>
                         <b id="nav-pending-count">0</b>
+                    </a>
+
+                    <span class="nav-caption">Cadastros</span>
+                    <a href="#passengers" class="side-link" data-view="passengers">
+                        <i class="fas fa-users"></i>
+                        <span>Passageiros</span>
                     </a>
                     <a href="#drivers" class="side-link" data-view="drivers">
                         <i class="fas fa-id-card"></i>
@@ -138,28 +149,33 @@
                         <div>
                             <span class="eyebrow">Centro de operações</span>
                             <h2>Bom trabalho, equipe.</h2>
-                            <p>Acompanhe o que precisa da sua atenção hoje.</p>
+                            <p>Acompanhe aprovações de passageiros e motoristas em tempo real.</p>
                         </div>
                         <div class="welcome-mark">
                             <i class="fas fa-route"></i>
                         </div>
                     </section>
 
-                    <div class="metric-grid">
+                    <div class="metric-grid-4">
                         <article class="metric-card">
-                            <span class="metric-label">Aguardando análise</span>
+                            <span class="metric-label">Passageiros pendentes</span>
+                            <strong id="metric-passenger-pending">--</strong>
+                            <span class="metric-note warning"><i class="fas fa-users-gear"></i> App Passageiro</span>
+                        </article>
+                        <article class="metric-card">
+                            <span class="metric-label">Motoristas pendentes</span>
                             <strong id="metric-pending">--</strong>
-                            <span class="metric-note warning"><i class="fas fa-clock"></i> Fila de aprovação</span>
+                            <span class="metric-note warning"><i class="fas fa-clock"></i> Fila de motoristas</span>
                         </article>
                         <article class="metric-card">
-                            <span class="metric-label">Motoristas aprovados</span>
+                            <span class="metric-label">Passageiros ativos</span>
+                            <strong id="metric-passenger-approved">--</strong>
+                            <span class="metric-note positive"><i class="fas fa-user-check"></i> Base homologada</span>
+                        </article>
+                        <article class="metric-card">
+                            <span class="metric-label">Motoristas ativos</span>
                             <strong id="metric-approved">--</strong>
-                            <span class="metric-note positive"><i class="fas fa-arrow-trend-up"></i> Base ativa</span>
-                        </article>
-                        <article class="metric-card">
-                            <span class="metric-label">Comunicados publicados</span>
-                            <strong id="metric-posts">--</strong>
-                            <span class="metric-note neutral"><i class="fas fa-calendar"></i> Neste painel</span>
+                            <span class="metric-note positive"><i class="fas fa-car-side"></i> Frota homologada</span>
                         </article>
                     </div>
 
@@ -170,7 +186,7 @@
                                     <span class="eyebrow">Prioridade</span>
                                     <h2>Solicitações recentes</h2>
                                 </div>
-                                <a href="#approvals" data-view="approvals" class="text-link">Ver todas <i class="fas fa-arrow-right"></i></a>
+                                <a href="#passenger-approvals" data-view="passenger-approvals" class="text-link">Ver passageiros <i class="fas fa-arrow-right"></i></a>
                             </div>
                             <div id="recent-approvals" class="approval-list">
                                 <p class="loading-state">Carregando solicitações...</p>
@@ -184,11 +200,27 @@
                                     <h2>Ações rápidas</h2>
                                 </div>
                             </div>
-                            <button class="quick-action" data-view="approvals">
-                                <i class="fas fa-user-plus"></i>
+                            <button class="quick-action" data-view="passenger-approvals">
+                                <i class="fas fa-user-check"></i>
                                 <span>
-                                    <strong>Revisar aprovações</strong>
-                                    <small>Analise novos cadastros</small>
+                                    <strong>Aprovações de Passageiros</strong>
+                                    <small>Validar cadastros do app</small>
+                                </span>
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                            <button class="quick-action" id="quick-btn-simulate-passenger">
+                                <i class="fas fa-mobile-screen"></i>
+                                <span>
+                                    <strong>Simular App Passageiro</strong>
+                                    <small>Testar envio de cadastro</small>
+                                </span>
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                            <button class="quick-action" data-view="approvals">
+                                <i class="fas fa-id-card-clip"></i>
+                                <span>
+                                    <strong>Aprovações de Motoristas</strong>
+                                    <small>Analise novos motoristas</small>
                                 </span>
                                 <i class="fas fa-chevron-right"></i>
                             </button>
@@ -200,19 +232,61 @@
                                 </span>
                                 <i class="fas fa-chevron-right"></i>
                             </button>
-                            <button class="quick-action" data-view="security">
-                                <i class="fas fa-key"></i>
-                                <span>
-                                    <strong>Atualizar senha</strong>
-                                    <small>Mantenha sua conta segura</small>
-                                </span>
-                                <i class="fas fa-chevron-right"></i>
-                            </button>
                         </section>
                     </div>
                 </div>
 
-                <!-- 2. Fila de Aprovações -->
+                <!-- 2. Fila de Aprovações de Passageiros (NOVO) -->
+                <div class="view" id="view-passenger-approvals">
+                    <div class="page-heading">
+                        <div>
+                            <span class="eyebrow">App Passageiro · Solicitações de Acesso</span>
+                            <h2>Aprovações de Passageiros</h2>
+                            <p>Cadastros realizados pelos colaboradores via aplicativo aguardando validação para liberar o uso das rotas.</p>
+                        </div>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                            <button class="btn btn-secondary" id="refresh-passenger-approvals">
+                                <i class="fas fa-rotate"></i> Atualizar fila
+                            </button>
+                            <button class="btn btn-primary" id="btn-open-passenger-modal" style="width:auto;">
+                                <i class="fas fa-plus"></i> Simular Cadastro (App)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Barra de filtros -->
+                    <div style="display:flex; gap:12px; margin-bottom:18px; flex-wrap:wrap;">
+                        <div style="flex:1; min-width:250px; position:relative;">
+                            <input type="text" id="search-passenger-input" placeholder="Buscar por nome, empresa, CPF ou telefone...">
+                        </div>
+                        <div style="min-width:200px;">
+                            <select id="filter-passenger-company">
+                                <option value="">Todas as empresas</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="tabs" role="tablist">
+                        <button class="tab active" data-passenger-tab="pending">
+                            Pendentes <b id="passenger-pending-tab-count">0</b>
+                        </button>
+                        <button class="tab" data-passenger-tab="approved">
+                            Aprovados <b id="passenger-approved-tab-count">0</b>
+                        </button>
+                        <button class="tab" data-passenger-tab="rejected">
+                            Reprovados <b id="passenger-rejected-tab-count">0</b>
+                        </button>
+                        <button class="tab" data-passenger-tab="all">
+                            Todos <b id="passenger-all-tab-count">0</b>
+                        </button>
+                    </div>
+
+                    <div id="passenger-approvals-container" class="approval-table-wrap">
+                        <p class="loading-state">Carregando aprovações de passageiros...</p>
+                    </div>
+                </div>
+
+                <!-- 3. Fila de Aprovações de Motoristas -->
                 <div class="view" id="view-approvals">
                     <div class="page-heading">
                         <div>
@@ -239,7 +313,34 @@
                     </div>
                 </div>
 
-                <!-- 3. Motoristas Homologados -->
+                <!-- 4. Passageiros Homologados (NOVO) -->
+                <div class="view" id="view-passengers">
+                    <div class="page-heading">
+                        <div>
+                            <span class="eyebrow">Base de Colaboradores</span>
+                            <h2>Passageiros Homologados</h2>
+                            <p>Consulte a base de colaboradores autorizados nas rotas e operações corporativas.</p>
+                        </div>
+                        <div style="display:flex; gap:10px;">
+                            <button class="btn btn-secondary" id="refresh-passengers-list">
+                                <i class="fas fa-rotate"></i> Atualizar base
+                            </button>
+                            <button class="btn btn-primary" id="btn-open-passenger-modal-base" style="width:auto;">
+                                <i class="fas fa-plus"></i> Novo Passageiro
+                            </button>
+                        </div>
+                    </div>
+
+                    <div style="margin-bottom:18px;">
+                        <input type="text" id="search-passengers-base-input" placeholder="Filtrar passageiros por nome, empresa, setor ou matrícula...">
+                    </div>
+
+                    <div id="passengers-container" class="driver-grid">
+                        <p class="loading-state">Carregando passageiros...</p>
+                    </div>
+                </div>
+
+                <!-- 5. Motoristas Homologados -->
                 <div class="view" id="view-drivers">
                     <div class="page-heading">
                         <div>
@@ -253,7 +354,7 @@
                     </div>
                 </div>
 
-                <!-- 4. Comunicados -->
+                <!-- 6. Comunicados -->
                 <div class="view" id="view-posts">
                     <div class="page-heading">
                         <div>
@@ -304,7 +405,7 @@
                     </section>
                 </div>
 
-                <!-- 5. Segurança -->
+                <!-- 7. Segurança -->
                 <div class="view" id="view-security">
                     <div class="page-heading">
                         <div>
@@ -346,6 +447,78 @@
             </div>
         </section>
     </main>
+
+    <!-- Modal de Cadastro / Simulação do App Passageiro -->
+    <div id="passenger-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="passenger-modal-title">
+        <div class="modal-card">
+            <button id="close-passenger-modal" class="toggle-password" style="position:absolute; right:16px; top:16px; font-size:18px; cursor:pointer;" aria-label="Fechar modal">
+                <i class="fas fa-xmark"></i>
+            </button>
+            <div class="eyebrow" style="margin-bottom:6px;">
+                <i class="fas fa-mobile-screen"></i> Entrada via App Passageiro
+            </div>
+            <h2 id="passenger-modal-title" style="margin:0 0 6px; font-size:22px; letter-spacing:-.04em;">Novo Cadastro de Passageiro</h2>
+            <p style="color:#5f6d73; font-size:12px; margin:0 0 18px;">Simule a solicitação feita pelo colaborador através do aplicativo para testar a fila de aprovação do administrador.</p>
+
+            <form id="passenger-sim-form" novalidate>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="pass-name">Nome Completo *</label>
+                        <input type="text" id="pass-name" required placeholder="Ex: Lucas Silva Mendes">
+                    </div>
+                    <div class="form-group">
+                        <label for="pass-social">Nome Social / Chamado por</label>
+                        <input type="text" id="pass-social" placeholder="Ex: Lucas">
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="pass-phone">Telefone / WhatsApp *</label>
+                        <input type="tel" id="pass-phone" required placeholder="(92) 99999-9999">
+                    </div>
+                    <div class="form-group">
+                        <label for="pass-email">E-mail corporativo / pessoal</label>
+                        <input type="email" id="pass-email" placeholder="lucas@empresa.com.br">
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="pass-cpf">CPF</label>
+                        <input type="text" id="pass-cpf" placeholder="000.000.000-00">
+                    </div>
+                    <div class="form-group">
+                        <label for="pass-company">Empresa Cliente *</label>
+                        <input type="text" id="pass-company" required placeholder="Ex: Moto Honda, Samsung, etc.">
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="pass-dept">Setor / Departamento</label>
+                        <input type="text" id="pass-dept" placeholder="Ex: Operações / Logística">
+                    </div>
+                    <div class="form-group">
+                        <label for="pass-shift">Turno / Matrícula</label>
+                        <input type="text" id="pass-shift" placeholder="Ex: 1º Turno (06h - 15h)">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="pass-address">Ponto de Embarque / Endereço</label>
+                    <input type="text" id="pass-address" placeholder="Bairro / Rua / Ponto de referência">
+                </div>
+
+                <div class="form-actions" style="margin-top:20px;">
+                    <button type="submit" class="btn btn-primary" id="btn-submit-passenger">
+                        <i class="fas fa-paper-plane"></i> Enviar Solicitação do Passageiro
+                    </button>
+                </div>
+                <div id="passenger-sim-feedback" class="feedback-msg" aria-live="polite"></div>
+            </form>
+        </div>
+    </div>
 
     <!-- Supabase JS SDK v2 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
