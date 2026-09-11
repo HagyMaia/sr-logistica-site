@@ -50,12 +50,18 @@
       );
     };
 
-    setTheme(localStorage.getItem("sr-theme") === "dark");
+    const savedTheme = localStorage.getItem("sr-theme");
+    if (savedTheme !== null) {
+      setTheme(savedTheme === "dark");
+    } else {
+      const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+      setTheme(prefersDark);
+    }
 
     themeToggle?.addEventListener("click", () => {
-      const dark = !document.body.classList.contains("dark-mode");
-      setTheme(dark);
-      localStorage.setItem("sr-theme", dark ? "dark" : "light");
+      const isDark = !document.body.classList.contains("dark-mode");
+      setTheme(isDark);
+      localStorage.setItem("sr-theme", isDark ? "dark" : "light");
     });
 
     // Menu Mobile
@@ -77,6 +83,31 @@
     document
       .querySelectorAll(".reveal")
       .forEach((element) => revealObserver.observe(element));
+
+    // Efeito de movimento 3D e luz interativa nos cards
+    const applyCardEffects = (cards) => {
+      cards.forEach((card) => {
+        card.addEventListener("mousemove", (e) => {
+          const rect = card.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          card.style.setProperty("--mouse-x", `${x}px`);
+          card.style.setProperty("--mouse-y", `${y}px`);
+
+          const centerX = rect.width / 2;
+          const centerY = rect.height / 2;
+          const rotateX = ((y - centerY) / centerY) * -4;
+          const rotateY = ((x - centerX) / centerX) * 4;
+          card.style.transform = `perspective(1000px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) translateY(-10px) scale(1.015)`;
+        });
+
+        card.addEventListener("mouseleave", () => {
+          card.style.transform = "";
+        });
+      });
+    };
+
+    applyCardEffects(document.querySelectorAll(".solution-card"));
 
     // Modal de Anúncio / Promoção
     const closeAnnouncement = () => {
@@ -129,6 +160,8 @@
           `;
         })
         .join("");
+
+      applyCardEffects(postsContainer.querySelectorAll(".post-card"));
 
       const lastClosed = Number(
         localStorage.getItem("sr_modal_closed_time") || 0
