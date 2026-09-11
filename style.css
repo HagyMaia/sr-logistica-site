@@ -1424,6 +1424,273 @@ footer {
   }
 }
 
+/* ==========================================================================
+   Seção App do Passageiro & Formulário de Cadastro
+   ========================================================================== */
+.app-section {
+  background: var(--paper);
+  position: relative;
+  overflow: hidden;
+}
+
+.app-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  align-items: start;
+  margin-top: 40px;
+}
+
+.app-info-card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 36px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.app-badge-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: var(--amber-soft);
+  color: #925c00;
+  border: 1px solid rgba(229, 168, 59, 0.4);
+  border-radius: 50px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  width: fit-content;
+}
+
+body.dark-mode .app-badge-tag {
+  color: var(--amber);
+}
+
+.app-info-card h3 {
+  font-size: 1.85rem;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--navy);
+}
+
+body.dark-mode .app-info-card h3 {
+  color: var(--ink);
+}
+
+.app-info-card p {
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.app-features-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.app-features-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.app-features-list li i {
+  color: var(--green);
+  font-size: 1.1rem;
+}
+
+.app-buttons-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.btn-app-main {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: var(--navy);
+  color: #ffffff !important;
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 14px 24px;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(19, 43, 56, 0.25);
+  transition: all 0.3s var(--ease);
+}
+
+.btn-app-main:hover {
+  transform: translateY(-2px);
+  background: var(--navy-2);
+  box-shadow: 0 14px 30px rgba(19, 43, 56, 0.35);
+}
+
+.btn-app-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: transparent;
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding: 12px 20px;
+  border-radius: 16px;
+  border: 1.5px solid var(--line);
+  transition: all 0.3s var(--ease);
+}
+
+.btn-app-outline:hover {
+  border-color: var(--amber);
+  color: var(--amber);
+  background: var(--amber-soft);
+}
+
+/* Card do Formulário de Cadastro */
+.pass-form-card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 36px;
+  box-shadow: var(--shadow);
+}
+
+.pass-form-header {
+  margin-bottom: 24px;
+}
+
+.pass-form-header h3 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--navy);
+  margin-bottom: 6px;
+}
+
+body.dark-mode .pass-form-header h3 {
+  color: var(--ink);
+}
+
+.pass-form-header p {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-group.full-width {
+  grid-column: span 2;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 0.9rem;
+  transition: all 0.2s var(--ease);
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--amber);
+  background: var(--white);
+  box-shadow: 0 0 0 4px rgba(229, 168, 59, 0.18);
+}
+
+.btn-submit-pass {
+  width: 100%;
+  padding: 14px;
+  background: var(--amber);
+  color: #132b38;
+  font-weight: 800;
+  font-size: 0.95rem;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 18px;
+  transition: all 0.3s var(--ease);
+}
+
+.btn-submit-pass:hover:not(:disabled) {
+  transform: translateY(-2px);
+  filter: brightness(1.05);
+  box-shadow: 0 8px 20px rgba(229, 168, 59, 0.4);
+}
+
+.btn-submit-pass:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.pass-feedback {
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  display: none;
+}
+
+.pass-feedback.success {
+  display: block;
+  background: var(--green-soft);
+  color: var(--green);
+  border: 1px solid var(--green);
+}
+
+.pass-feedback.error {
+  display: block;
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #f87171;
+}
+
+@media (max-width: 900px) {
+  .app-grid {
+    grid-template-columns: 1fr;
+  }
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  .form-group.full-width {
+    grid-column: span 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

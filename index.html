@@ -16,7 +16,13 @@
         <div class="container nav-container">
             <a class="logo" href="#inicio" aria-label="SR Logística, início"><span class="brand-mark">SR</span><span>SR <em>Logística</em></span></a>
             <div class="nav-links" id="nav-links">
-                <a href="#solucoes">Soluções</a><a href="#empresa">A empresa</a><a href="#novidades">Atualizações</a><a href="admin.html" class="admin-link"><i class="fas fa-lock"></i> Admin</a><a href="#contato" class="nav-cta">Falar com a equipe <i class="fas fa-arrow-up-right-from-square"></i></a>
+                <a href="#solucoes">Soluções</a>
+                <a href="#empresa">A empresa</a>
+                <a href="#app-passageiro">App Passageiro</a>
+                <a href="#cadastro-passageiro" class="highlight-link"><i class="fas fa-user-plus"></i> Cadastrar</a>
+                <a href="#novidades">Atualizações</a>
+                <a href="admin.html" class="admin-link"><i class="fas fa-lock"></i> Admin</a>
+                <a href="#contato" class="nav-cta">Falar com a equipe <i class="fas fa-arrow-up-right-from-square"></i></a>
             </div>
             <div class="nav-tools"><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Ativar modo escuro" title="Alternar modo claro e escuro"><i class="fas fa-moon"></i></button><button class="nav-toggle" id="nav-toggle" aria-label="Abrir menu" aria-expanded="false"><i class="fas fa-bars"></i></button></div>
         </div>
@@ -26,7 +32,16 @@
         <section class="hero">
             <div class="hero-image"></div><div class="hero-shade"></div>
             <div class="container hero-content">
-                <div class="hero-copy reveal"><span class="eyebrow light">Transporte corporativo · Manaus/AM</span><h1>Mobilidade que mantém sua operação <i>em movimento.</i></h1><p>Rotas confiáveis para pessoas, turnos e decisões importantes. A SR cuida do deslocamento para sua empresa cuidar do que importa.</p><div class="hero-actions"><a class="btn btn-primary" href="https://wa.me/5592984162443" target="_blank">Planejar uma rota <i class="fab fa-whatsapp"></i></a><a class="hero-text-link" href="#solucoes">Conheça nossas soluções <i class="fas fa-arrow-down"></i></a></div></div>
+                <div class="hero-copy reveal">
+                    <span class="eyebrow light">Transporte corporativo · Manaus/AM</span>
+                    <h1>Mobilidade que mantém sua operação <i>em movimento.</i></h1>
+                    <p>Rotas confiáveis para pessoas, turnos e decisões importantes. A SR cuida do deslocamento para sua empresa cuidar do que importa.</p>
+                    <div class="hero-actions">
+                        <a class="btn btn-primary" href="https://srlogpassageiro.vercel.app" target="_blank"><i class="fas fa-mobile-screen-button"></i> Abrir App Passageiro</a>
+                        <a class="btn btn-primary" style="background:#268269;" href="#cadastro-passageiro"><i class="fas fa-user-check"></i> Solicitar Cadastro</a>
+                        <a class="hero-text-link" href="https://wa.me/5592984162443" target="_blank">Falar no WhatsApp <i class="fab fa-whatsapp"></i></a>
+                    </div>
+                </div>
                 <div class="hero-foot"><span>SR LOGÍSTICA E TRANSPORTE LTDA</span><span class="route-line"><i></i><i></i><i></i></span><span>52.967.828/0001-17</span></div>
             </div>
         </section>
@@ -116,6 +131,91 @@
             </div>
         </section>
 
+        <!-- Seção App do Passageiro & Cadastro de Usuários -->
+        <section id="app-passageiro" class="section app-section">
+            <div class="container">
+                <div class="section-heading reveal">
+                    <span class="eyebrow">Aplicativo Oficial</span>
+                    <h2>Mobilidade na palma da sua mão.</h2>
+                    <p>Solicite viagens em tempo real, acompanhe o motorista no mapa de Manaus e viaje com total segurança.</p>
+                </div>
+
+                <div class="app-grid">
+                    <!-- Card de Informações e Download -->
+                    <div class="app-info-card reveal">
+                        <span class="app-badge-tag"><i class="fas fa-bolt"></i> Disponível para Celular e Web</span>
+                        <h3>SR Logística Passageiro</h3>
+                        <p>O aplicativo oficial para colaboradores e parceiros solicitarem transportes, corridas sob demanda ou turnos corporativos.</p>
+                        
+                        <ul class="app-features-list">
+                            <li><i class="fas fa-circle-check"></i> <strong>GPS em Tempo Real:</strong> Acompanhe a chegada do seu motorista.</li>
+                            <li><i class="fas fa-circle-check"></i> <strong>Frota Homologada:</strong> Motoristas profissionais selecionados.</li>
+                            <li><i class="fas fa-circle-check"></i> <strong>Turnos & Agendamentos:</strong> Programe suas viagens com antecedência.</li>
+                            <li><i class="fas fa-circle-check"></i> <strong>Recibo & Histórico:</strong> Comprovantes detalhados de cada rota.</li>
+                        </ul>
+
+                        <div class="app-buttons-group">
+                            <a href="https://srlogpassageiro.vercel.app" target="_blank" class="btn-app-main">
+                                <i class="fas fa-mobile-screen-button"></i> Abrir Aplicativo do Passageiro
+                            </a>
+                            <a href="https://srlogpassageiro.vercel.app/sr-passageiro.apk" class="btn-app-outline">
+                                <i class="fab fa-android"></i> Baixar App para Android (.APK)
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Card de Formulário de Cadastro de Passageiro -->
+                    <div id="cadastro-passageiro" class="pass-form-card reveal">
+                        <div class="pass-form-header">
+                            <span class="app-badge-tag" style="background:var(--green-soft); color:var(--green);"><i class="fas fa-shield-halved"></i> Cadastro de Passageiro</span>
+                            <h3>Solicitar Acesso / Cadastro</h3>
+                            <p>Preencha os dados abaixo para envio direto ao Centro de Operações da SR Logística.</p>
+                        </div>
+
+                        <form id="passenger-register-form">
+                            <div class="form-grid">
+                                <div class="form-group full-width">
+                                    <label for="pass-nome">Nome Completo *</label>
+                                    <input type="text" id="pass-nome" required placeholder="Ex: Carlos Eduardo Silva">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="pass-telefone">Telefone / WhatsApp *</label>
+                                    <input type="tel" id="pass-telefone" required placeholder="(92) 99999-9999">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="pass-cpf">CPF (Opcional)</label>
+                                    <input type="text" id="pass-cpf" placeholder="000.000.000-00">
+                                </div>
+
+                                <div class="form-group full-width">
+                                    <label for="pass-email">E-mail *</label>
+                                    <input type="email" id="pass-email" required placeholder="seu.email@empresa.com.br ou pessoal">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="pass-empresa">Empresa / Convênio *</label>
+                                    <input type="text" id="pass-empresa" required placeholder="Ex: Moto Honda, Samsung, Particular">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="pass-setor">Setor / Cargo</label>
+                                    <input type="text" id="pass-setor" placeholder="Ex: Operações, TI, Produção">
+                                </div>
+                            </div>
+
+                            <button type="submit" id="btn-pass-submit" class="btn-submit-pass">
+                                <i class="fas fa-paper-plane"></i> Enviar Cadastro de Passageiro
+                            </button>
+
+                            <div id="pass-form-feedback" class="pass-feedback"></div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <section id="empresa" class="section company-section"><div class="container company-grid"><div class="company-visual reveal"><img src="assets/img/sobre_taxi.png" alt="Veículo da SR Logística preparado para transporte corporativo"><span class="visual-label">Frota pronta<br>para o próximo turno</span><div class="visual-rule"></div></div><div class="company-copy reveal"><span class="eyebrow">A SR por perto</span><h2>Confiabilidade não acontece por acaso.</h2><p>Somos uma empresa de transporte privado de passageiros com foco no segmento corporativo. Em cada rota, combinamos planejamento, atendimento próximo e uma equipe preparada.</p><p>Nosso trabalho é reduzir a fricção do deslocamento e dar mais tranquilidade para quem administra pessoas, horários e resultados.</p><div class="company-signature"><span class="brand-mark">SR</span><span><strong>Silvio Ramos Martins</strong><small>Responsável pela operação</small></span></div></div></div></section>
 
         <section id="novidades" class="section updates-section"><div class="container"><div class="section-heading compact reveal"><div><span class="eyebrow">Mural da operação</span><h2>Novidades e avisos.</h2></div><p>Informações recentes para acompanhar a nossa operação.</p></div><div id="posts-feed" class="posts-grid"><p class="loading-text">Carregando atualizações...</p></div></div></section>
@@ -126,6 +226,8 @@
 
     <div id="promo-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title"><div class="modal-content"><button id="close-modal" class="close-modal" aria-label="Fechar aviso"><i class="fas fa-xmark"></i></button><span id="modal-badge" class="post-badge">AVISO</span><img id="modal-image" src="" alt="" class="hidden"><h2 id="modal-title">Atualização</h2><p id="modal-text"></p><a class="btn btn-primary" href="https://wa.me/5592984162443" target="_blank"><i class="fab fa-whatsapp"></i> Falar com a equipe</a></div></div>
     <a class="whatsapp-float" href="https://wa.me/5592984162443" target="_blank" aria-label="Falar conosco no WhatsApp"><i class="fab fa-whatsapp"></i></a>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="script.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-config.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>

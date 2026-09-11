@@ -1,11 +1,10 @@
-// ⚠️ ATENÇÃO: COLOQUE SUAS CHAVES DO SUPABASE AQUI ⚠️
-// 1. Vá nas configurações do seu projeto Supabase > API
-// 2. Copie a Project URL e cole na variável SUPABASE_URL
-// 3. Copie a anon / public key e cole na variável SUPABASE_KEY
-
+// Configuração do Supabase para o Site Oficial da SR Logística
 const SUPABASE_URL = 'https://lvdplhnbkkmlcxeuqhdo.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_CoC8vHLwAQ3kGsXwWBlaoA_4LB5SzsK';
 
-// Inicializa o cliente do Supabase
-// (O objeto supabase é disponibilizado globalmente pelo CDN carregado no HTML)
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// Inicializa o cliente Supabase de forma segura e global
+const supabaseClient = (typeof window !== 'undefined' && window.supabase)
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+  : null;
+
+window._srSupabase = supabaseClient;

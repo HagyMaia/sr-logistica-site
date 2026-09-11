@@ -275,59 +275,7 @@ async function loadPassageiros() {
 }
 
 function getInitialPassengersMock() {
-  return [
-    {
-      id: "pass-01",
-      nome: "Carlos Eduardo Costa",
-      nome_social: "Carlos",
-      nome_completo: "Carlos Eduardo Costa Ribeiro",
-      cpf: "123.456.789-00",
-      telefone: "(92) 98112-4455",
-      email: "carlos.costa@motohonda.com.br",
-      empresa: "Moto Honda da Amazônia",
-      setor: "Montagem / Produção",
-      matricula: "MH-84920",
-      turno: "1º Turno (06h - 15h)",
-      endereco: "Av. Autaz Mirim, Tancredo Neves",
-      origem: "App Passageiro",
-      status: "Pendente",
-      created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
-    },
-    {
-      id: "pass-02",
-      nome: "Juliana Mendes Alencar",
-      nome_social: "Juliana",
-      nome_completo: "Juliana Mendes Alencar",
-      cpf: "987.654.321-11",
-      telefone: "(92) 99234-8899",
-      email: "juliana.alencar@samsung.com",
-      empresa: "Samsung Eletrônica",
-      setor: "Qualidade & Testes",
-      matricula: "SAM-3310",
-      turno: "Turno Comercial (08h - 17h)",
-      endereco: "Rua Timbiras, Cidade Nova",
-      origem: "App Passageiro",
-      status: "Pendente",
-      created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
-    },
-    {
-      id: "pass-03",
-      nome: "Rodrigo Vasconcelos",
-      nome_social: "Rodrigo",
-      nome_completo: "Rodrigo Vasconcelos Lima",
-      cpf: "555.444.333-22",
-      telefone: "(92) 98455-1122",
-      email: "rodrigo.v@srlogistica.com.br",
-      empresa: "SR Logística (Interno)",
-      setor: "Supervisão de Pátio",
-      matricula: "SR-012",
-      turno: "2º Turno (15h - 23h)",
-      endereco: "São José Operário, Manaus",
-      origem: "App Passageiro",
-      status: "Aprovado",
-      created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-    },
-  ];
+  return [];
 }
 
 // --- MOTORISTAS: CARREGAMENTO ---

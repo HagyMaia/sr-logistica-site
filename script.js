@@ -126,9 +126,101 @@
       if (event.key === "Escape") closeAnnouncement();
     });
 
+    // =========================================================================
+    // Formulário de Cadastro de Passageiro (Salva direto no Supabase)
+    // =========================================================================
+    const passForm = document.getElementById("passenger-register-form");
+    const passFeedback = document.getElementById("pass-form-feedback");
+    const passBtn = document.getElementById("btn-pass-submit");
+
+    if (passForm) {
+      passForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const nome = document.getElementById("pass-nome")?.value.trim();
+        const telefone = document.getElementById("pass-telefone")?.value.trim();
+        const email = document.getElementById("pass-email")?.value.trim().toLowerCase();
+        const cpf = document.getElementById("pass-cpf")?.value.trim();
+        const empresa = document.getElementById("pass-empresa")?.value.trim();
+        const setor = document.getElementById("pass-setor")?.value.trim();
+
+        if (!nome || !telefone || !email || !empresa) {
+          if (passFeedback) {
+            passFeedback.className = "pass-feedback error";
+            passFeedback.innerHTML = "<strong>Campos obrigatórios:</strong> Preencha Nome, Telefone, E-mail e Empresa.";
+          }
+          return;
+        }
+
+        if (passBtn) {
+          passBtn.disabled = true;
+          passBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando e salvando dados...';
+        }
+        if (passFeedback) passFeedback.style.display = "none";
+
+        try {
+          const supabase = window._srSupabase || (window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null);
+          if (!supabase) throw new Error("Cliente de banco de dados não inicializado.");
+
+          const newId = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : `pass-${Date.now()}`;
+
+          const { data, error } = await supabase.from("passageiros").insert([
+            {
+              id: newId,
+              nome: nome,
+              nome_social: nome.split(" ")[0],
+              nome_completo: nome,
+              cpf: cpf || "Não informado",
+              telefone: telefone,
+              email: email,
+              empresa: empresa,
+              setor: setor || "Geral / Operações",
+              matricula: "Site Oficial",
+              turno: "Turno Comercial",
+              origem: "Site Oficial",
+              status: "Pendente",
+              created_at: new Date().toISOString()
+            }
+          ]);
+
+          if (error) {
+            throw error;
+          }
+
+          const zapMsg = encodeURIComponent(
+            `Olá Central SR Logística! Acabei de me cadastrar no site como passageiro (${nome}, Empresa: ${empresa}, Telefone: ${telefone}) e solicito liberação do meu acesso.`
+          );
+
+          if (passFeedback) {
+            passFeedback.className = "pass-feedback success";
+            passFeedback.innerHTML = `
+              <strong><i class="fas fa-circle-check"></i> Cadastro Salvo com Sucesso!</strong><br>
+              Seus dados foram enviados para homologação da SR Logística.<br><br>
+              <a href="https://wa.me/5592984162443?text=${zapMsg}" target="_blank" style="display:inline-block; margin-top:6px; background:#268269; color:#fff; padding:8px 16px; border-radius:8px; font-weight:700; text-decoration:none;">
+                <i class="fab fa-whatsapp"></i> Liberar Acesso Imediato via WhatsApp
+              </a>
+            `;
+          }
+
+          passForm.reset();
+        } catch (err) {
+          console.error("Erro ao cadastrar passageiro:", err);
+          if (passFeedback) {
+            passFeedback.className = "pass-feedback error";
+            passFeedback.innerHTML = `<strong>Erro ao salvar dados:</strong> ${err.message || "Tente novamente ou fale conosco no WhatsApp."}`;
+          }
+        } finally {
+          if (passBtn) {
+            passBtn.disabled = false;
+            passBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar Cadastro de Passageiro';
+          }
+        }
+      });
+    }
+
     // Carregamento de Comunicados do Supabase
-    if (!window.supabase || !postsContainer) return;
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const supabase = window._srSupabase || (window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null);
+    if (!supabase || !postsContainer) return;
 
     try {
       const { data: posts, error } = await supabase
