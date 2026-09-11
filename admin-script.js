@@ -735,13 +735,16 @@ function renderPassengerApprovals() {
               <button class="btn btn-primary" style="padding:5px 11px; font-size:11px; margin-right:4px; width:auto; min-height:30px;" onclick="approvePassenger('${p.id}')">
                 <i class="fas fa-check"></i> Aprovar
               </button>
-              <button class="btn btn-secondary" style="padding:5px 8px; font-size:11px; min-height:30px;" onclick="rejectPassenger('${p.id}')" title="Reprovar">
+              <button class="btn btn-secondary" style="padding:5px 8px; font-size:11px; min-height:30px; margin-right:4px;" onclick="rejectPassenger('${p.id}')" title="Reprovar">
                 <i class="fas fa-ban"></i>
+              </button>
+              <button class="btn btn-secondary" style="padding:5px 8px; font-size:11px; min-height:30px;" onclick="deletePassenger('${p.id}')" title="Excluir cadastro permanentemente">
+                <i class="fas fa-trash-can" style="color:var(--red);"></i>
               </button>
             `
               : `
-              <button class="btn btn-secondary" style="padding:4px 8px; font-size:11px; min-height:28px; margin-right:4px;" onclick="deletePassenger('${p.id}')" title="Remover registro">
-                <i class="fas fa-trash-can" style="color:var(--red);"></i>
+              <button class="btn btn-secondary" style="padding:4px 8px; font-size:11px; min-height:28px; margin-right:4px;" onclick="deletePassenger('${p.id}')" title="Excluir cadastro permanentemente">
+                <i class="fas fa-trash-can" style="color:var(--red);"></i> Excluir
               </button>
               ${
                 !isApproved
@@ -815,9 +818,14 @@ function renderPassengersBase() {
 
         <div style="border-top:1px solid var(--line); margin-top:14px; padding-top:10px; display:flex; justify-content:space-between; align-items:center;">
           <small style="color:#788b90; font-size:10px;">Origem: ${escapeHtml(p.origem || "App Passageiro")}</small>
-          <button class="btn btn-secondary" style="padding:3px 8px; font-size:11px; min-height:26px;" onclick="rejectPassenger('${p.id}')" title="Suspender / Desativar acesso">
-            <i class="fas fa-ban" style="color:var(--red);"></i> Desativar
-          </button>
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-secondary" style="padding:3px 8px; font-size:11px; min-height:26px;" onclick="rejectPassenger('${p.id}')" title="Suspender / Desativar acesso">
+              <i class="fas fa-ban" style="color:#be7b20;"></i> Desativar
+            </button>
+            <button class="btn btn-secondary" style="padding:3px 8px; font-size:11px; min-height:26px;" onclick="deletePassenger('${p.id}')" title="Excluir cadastro permanentemente">
+              <i class="fas fa-trash-can" style="color:var(--red);"></i> Excluir
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -896,7 +904,7 @@ window.rejectPassenger = async function (id) {
 };
 
 window.deletePassenger = async function (id) {
-  if (!confirm("Deseja realmente remover este registro de passageiro?")) return;
+  if (!confirm("Deseja realmente excluir este cadastro de passageiro permanentemente?")) return;
 
   try {
     if (supabaseClient) {
@@ -915,10 +923,10 @@ window.deletePassenger = async function (id) {
       JSON.stringify(passageirosCache),
     );
 
-    showNotification("Registro removido.", "info");
+    showNotification("Passageiro excluído com sucesso.", "info");
     await loadPassageiros();
   } catch (err) {
-    showNotification("Erro ao remover: " + err.message, "error");
+    showNotification("Erro ao excluir passageiro: " + err.message, "error");
   }
 };
 
@@ -1121,12 +1129,20 @@ function renderApprovals() {
         m.id +
         '\')"><i class="fas fa-check"></i> Aprovar</button>';
       html +=
-        '    <button class="btn btn-secondary" style="padding:4px 8px; font-size:12px; min-height:30px;" onclick="rejectDriver(\'' +
+        '    <button class="btn btn-secondary" style="padding:4px 8px; font-size:12px; min-height:30px; margin-right:5px;" onclick="rejectDriver(\'' +
         m.id +
-        '\')"><i class="fas fa-ban"></i></button>';
+        '\')" title="Reprovar"><i class="fas fa-ban"></i></button>';
+      html +=
+        '    <button class="btn btn-secondary" style="padding:4px 8px; font-size:12px; min-height:30px;" onclick="deleteDriver(\'' +
+        m.id +
+        '\')" title="Excluir cadastro permanentemente"><i class="fas fa-trash-can" style="color:var(--red);"></i></button>';
     } else {
       html +=
-        '    <span style="color:var(--green); font-weight:bold; font-size:12px;"><i class="fas fa-circle-check"></i> Homologado</span>';
+        '    <span style="color:var(--green); font-weight:bold; font-size:12px; margin-right:8px;"><i class="fas fa-circle-check"></i> Homologado</span>';
+      html +=
+        '    <button class="btn btn-secondary" style="padding:4px 8px; font-size:11px; min-height:28px;" onclick="deleteDriver(\'' +
+        m.id +
+        '\')" title="Excluir motorista permanentemente"><i class="fas fa-trash-can" style="color:var(--red);"></i> Excluir</button>';
     }
 
     html += "  </td>";
@@ -1155,7 +1171,7 @@ function renderDrivers() {
     const initial = (m.nome_social || m.nome || "M").charAt(0).toUpperCase();
 
     html += `
-      <div class="driver-card">
+      <div class="driver-card" style="background:var(--white); border:1px solid var(--line); border-radius:var(--radius); padding:18px;">
         <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
           <div style="width:40px; height:40px; border-radius:10px; background:var(--amber-soft); color:#925c0a; display:flex; align-items:center; justify-content:center; font-weight:bold;">
             ${initial}
@@ -1172,6 +1188,14 @@ function renderDrivers() {
           <div><i class="fas fa-phone" style="width:18px; color:var(--green);"></i> ${escapeHtml(m.telefone || m.phone || "Sem telefone")}</div>
           <div><i class="fas fa-location-dot" style="width:18px; color:var(--green);"></i> Manaus - AM</div>
         </div>
+        <div style="border-top:1px solid var(--line); margin-top:14px; padding-top:10px; display:flex; justify-content:flex-end; gap:6px; align-items:center;">
+          <button class="btn btn-secondary" style="padding:3px 8px; font-size:11px; min-height:26px;" onclick="rejectDriver('${m.id}')" title="Suspender / Desativar motorista">
+            <i class="fas fa-ban" style="color:#be7b20;"></i> Desativar
+          </button>
+          <button class="btn btn-secondary" style="padding:3px 8px; font-size:11px; min-height:26px;" onclick="deleteDriver('${m.id}')" title="Excluir motorista permanentemente">
+            <i class="fas fa-trash-can" style="color:var(--red);"></i> Excluir
+          </button>
+        </div>
       </div>
     `;
   }
@@ -1179,16 +1203,18 @@ function renderDrivers() {
   container.innerHTML = html;
 }
 
-// --- FUNÇÕES DE APROVAÇÃO DE MOTORISTAS ---
+// --- FUNÇÕES DE APROVAÇÃO E GESTÃO DE MOTORISTAS ---
 window.approveDriver = async function (driverId) {
   if (!confirm("Deseja aprovar este motorista / veículo?")) return;
   try {
-    const { error } = await supabaseClient
-      .from("motoristas")
-      .update({ status: "Aprovado", vehicle_status: "Aprovado" })
-      .eq("id", driverId);
+    if (supabaseClient) {
+      const { error } = await supabaseClient
+        .from("motoristas")
+        .update({ status: "Aprovado", vehicle_status: "Aprovado" })
+        .eq("id", driverId);
 
-    if (error) throw error;
+      if (error && error.code !== "PGRST205") throw error;
+    }
     showNotification("Motorista aprovado com sucesso!", "success");
     await loadMotoristas();
   } catch (err) {
@@ -1197,18 +1223,46 @@ window.approveDriver = async function (driverId) {
 };
 
 window.rejectDriver = async function (driverId) {
-  if (!confirm("Deseja recusar esta solicitação de motorista?")) return;
+  if (!confirm("Deseja recusar ou suspender este motorista?")) return;
   try {
-    const { error } = await supabaseClient
-      .from("motoristas")
-      .update({ status: "Reprovado", vehicle_status: "Reprovado" })
-      .eq("id", driverId);
+    if (supabaseClient) {
+      const { error } = await supabaseClient
+        .from("motoristas")
+        .update({ status: "Reprovado", vehicle_status: "Reprovado" })
+        .eq("id", driverId);
 
-    if (error) throw error;
-    showNotification("Solicitação de motorista reprovada.", "warning");
+      if (error && error.code !== "PGRST205") throw error;
+    }
+    showNotification("Motorista marcado como reprovado/suspenso.", "warning");
     await loadMotoristas();
   } catch (err) {
-    showNotification("Erro ao reprovar: " + err.message, "error");
+    showNotification("Erro ao atualizar motorista: " + err.message, "error");
+  }
+};
+
+window.deleteDriver = async function (driverId) {
+  if (!confirm("Deseja realmente excluir este motorista permanentemente do sistema?")) return;
+  try {
+    if (supabaseClient) {
+      const { error } = await supabaseClient
+        .from("motoristas")
+        .delete()
+        .eq("id", driverId);
+
+      if (error && error.code !== "PGRST205") throw error;
+    }
+
+    motoristasCache = motoristasCache.filter(
+      (m) => String(m.id) !== String(driverId),
+    );
+
+    showNotification("Motorista excluído com sucesso.", "info");
+    updateMetrics();
+    renderOverviewApprovals();
+    renderApprovals();
+    renderDrivers();
+  } catch (err) {
+    showNotification("Erro ao excluir motorista: " + err.message, "error");
   }
 };
 
