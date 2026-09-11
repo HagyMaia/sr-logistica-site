@@ -1,10 +1,22 @@
 // Configuração do Supabase para o Site Oficial da SR Logística
-const SUPABASE_URL = 'https://lvdplhnbkkmlcxeuqhdo.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_CoC8vHLwAQ3kGsXwWBlaoA_4LB5SzsK';
+(function () {
+  const SUPABASE_URL = 'https://lvdplhnbkkmlcxeuqhdo.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_CoC8vHLwAQ3kGsXwWBlaoA_4LB5SzsK';
 
-// Inicializa o cliente Supabase de forma segura e global
-const supabaseClient = (typeof window !== 'undefined' && window.supabase)
-  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
-  : null;
+  if (typeof window !== 'undefined') {
+    window.SUPABASE_URL = SUPABASE_URL;
+    window.SUPABASE_KEY = SUPABASE_KEY;
 
-window._srSupabase = supabaseClient;
+    if (window.supabase && !window.supabaseClient) {
+      window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+          storage: window.localStorage,
+        },
+      });
+    }
+    window._srSupabase = window.supabaseClient;
+  }
+})();

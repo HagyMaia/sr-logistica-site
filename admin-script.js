@@ -3,14 +3,28 @@
  * Gerenciamento completo de Motoristas, Passageiros e Comunicados
  */
 
-// 1. CREDENCIAIS DO SUPABASE
-const SUPABASE_URL = "https://lvdplhnbkkmlcxeuqhdo.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_CoC8vHLwAQ3kGsXwWBlaoA_4LB5SzsK";
+// 1. OBTENÇÃO SEGURA DO CLIENTE SUPABASE
+const SUPABASE_URL = window.SUPABASE_URL || "https://lvdplhnbkkmlcxeuqhdo.supabase.co";
+const SUPABASE_ANON_KEY = window.SUPABASE_KEY || "sb_publishable_CoC8vHLwAQ3kGsXwWBlaoA_4LB5SzsK";
 
 const supabaseClient =
-  typeof window !== "undefined" && window.supabase
-    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-    : null;
+  window.supabaseClient ||
+  window._srSupabase ||
+  (typeof window !== "undefined" && window.supabase
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          detectSessionInUrl: true,
+          storage: window.localStorage,
+        },
+      })
+    : null);
+
+if (supabaseClient && typeof window !== "undefined") {
+  window.supabaseClient = supabaseClient;
+  window._srSupabase = supabaseClient;
+}
 
 // Estado Global
 let currentView = "overview";
@@ -23,6 +37,18 @@ let passengerBaseSearchQuery = "";
 let motoristasCache = [];
 let passageirosCache = [];
 let postsCache = [];
+
+// Monitor de mudança de autenticação em tempo real
+if (supabaseClient && supabaseClient.auth) {
+  supabaseClient.auth.onAuthStateChange((event, session) => {
+    if (session) {
+      updateAdminUserUI(session.user);
+      showDashboard();
+    } else if (event === "SIGNED_OUT") {
+      showLogin();
+    }
+  });
+}
 
 // Inicialização ao carregar o DOM
 document.addEventListener("DOMContentLoaded", () => {
@@ -37,16 +63,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // --- AUTENTICAÇÃO ---
 async function checkSession() {
-  if (!supabaseClient) return;
+  if (!supabaseClient || !supabaseClient.auth) {
+    showLogin();
+    return;
+  }
   try {
-    const { data } = await supabaseClient.auth.getSession();
+    const { data, error } = await supabaseClient.auth.getSession();
+    if (error) {
+      console.warn("Aviso ao recuperar sessão:", error.message);
+      showLogin();
+      return;
+    }
     if (data && data.session) {
+      updateAdminUserUI(data.session.user);
       showDashboard();
     } else {
       showLogin();
     }
   } catch (err) {
+    console.warn("Exceção na checagem de sessão:", err);
     showLogin();
+  }
+}
+
+function updateAdminUserUI(user) {
+  if (!user) return;
+  const avatarElem = document.getElementById("admin-avatar");
+  if (avatarElem) {
+    const emailPrefix = (user.email || "SR").split("@")[0];
+    avatarElem.textContent = emailPrefix.slice(0, 2).toUpperCase();
+    avatarElem.title = user.email || "Administrador";
   }
 }
 
@@ -57,12 +103,16 @@ function showLogin() {
   if (dash) dash.classList.add("hidden");
 }
 
+let isDataLoaded = false;
 function showDashboard() {
   const login = document.getElementById("login-container");
   const dash = document.getElementById("dashboard-container");
   if (login) login.classList.add("hidden");
   if (dash) dash.classList.remove("hidden");
-  loadAllData();
+  if (!isDataLoaded) {
+    isDataLoaded = true;
+    loadAllData();
+  }
 }
 
 function setupLoginForm() {
@@ -70,6 +120,7 @@ function setupLoginForm() {
   const feedback = document.getElementById("login-feedback");
   const togglePass = document.getElementById("togglePassword");
   const passInput = document.getElementById("admin-password");
+  const forgotPass = document.getElementById("forgot-password");
 
   if (togglePass && passInput) {
     togglePass.addEventListener("click", () => {
@@ -80,12 +131,45 @@ function setupLoginForm() {
     });
   }
 
+  if (forgotPass) {
+    forgotPass.addEventListener("click", async (e) => {
+      e.preventDefault();
+      const emailInput = document.getElementById("admin-user");
+      let email = emailInput ? emailInput.value.trim() : "";
+      if (!email) {
+        email = prompt("Digite seu e-mail corporativo para redefinir a senha:");
+        if (!email) return;
+      }
+      try {
+        if (feedback) {
+          feedback.textContent = "Enviando e-mail de redefinição...";
+          feedback.className = "feedback-msg info";
+        }
+        if (!supabaseClient || !supabaseClient.auth) {
+          throw new Error("Cliente de autenticação não inicializado.");
+        }
+        const { error } = await supabaseClient.auth.resetPasswordForEmail(email);
+        if (error) throw error;
+        if (feedback) {
+          feedback.textContent = "Link de redefinição enviado para " + email + ". Verifique sua caixa de entrada.";
+          feedback.className = "feedback-msg success";
+        }
+      } catch (err) {
+        if (feedback) {
+          feedback.textContent = "Erro ao solicitar redefinição: " + (err.message || "Tente novamente.");
+          feedback.className = "feedback-msg error";
+        }
+      }
+    });
+  }
+
   if (loginForm) {
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const emailInput = document.getElementById("admin-user");
       const email = emailInput ? emailInput.value.trim() : "";
       const password = passInput ? passInput.value : "";
+      const submitBtn = loginForm.querySelector('button[type="submit"]');
 
       if (!email || !password) {
         if (feedback) {
@@ -95,23 +179,52 @@ function setupLoginForm() {
         return;
       }
 
+      if (!supabaseClient || !supabaseClient.auth) {
+        if (feedback) {
+          feedback.textContent = "Erro de conexão com o Supabase. Tente recarregar a página.";
+          feedback.className = "feedback-msg error";
+        }
+        return;
+      }
+
+      const origBtnHtml = submitBtn ? submitBtn.innerHTML : "";
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Entrando...';
+      }
+
       if (feedback) {
         feedback.textContent = "Verificando credenciais...";
         feedback.className = "feedback-msg info";
       }
 
       try {
-        const { error } = await supabaseClient.auth.signInWithPassword({
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
           email: email,
           password: password,
         });
         if (error) throw error;
-        if (feedback) feedback.textContent = "";
+        if (feedback) {
+          feedback.textContent = "";
+          feedback.className = "feedback-msg";
+        }
+        if (data && data.session) {
+          updateAdminUserUI(data.session.user);
+        }
         showDashboard();
       } catch (err) {
+        console.error("Erro no login:", err);
         if (feedback) {
-          feedback.textContent = err.message || "Credenciais inválidas.";
+          const msg = err.message === "Invalid login credentials"
+            ? "E-mail ou senha incorretos."
+            : (err.message || "Credenciais inválidas.");
+          feedback.textContent = msg;
           feedback.className = "feedback-msg error";
+        }
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = origBtnHtml;
         }
       }
     });
@@ -119,8 +232,16 @@ function setupLoginForm() {
 
   const btnLogout = document.getElementById("btn-logout");
   if (btnLogout) {
-    btnLogout.addEventListener("click", async () => {
-      if (supabaseClient) await supabaseClient.auth.signOut();
+    btnLogout.addEventListener("click", async (e) => {
+      e.preventDefault();
+      try {
+        if (supabaseClient && supabaseClient.auth) {
+          await supabaseClient.auth.signOut();
+        }
+      } catch (err) {
+        console.warn("Erro ao deslogar:", err);
+      }
+      isDataLoaded = false;
       showLogin();
     });
   }
