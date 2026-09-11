@@ -428,6 +428,9 @@ function updateMetrics() {
   const driversApproved = motoristasCache.filter(
     (m) => m.status === "Aprovado",
   ).length;
+  const driversRejected = motoristasCache.filter(
+    (m) => m.status === "Reprovado",
+  ).length;
 
   // Passageiros
   const passengersPending = passageirosCache.filter(
@@ -446,12 +449,16 @@ function updateMetrics() {
   const nDriverPending = document.getElementById("nav-pending-count");
   const pDriverTab = document.getElementById("pending-tab-count");
   const aDriverTab = document.getElementById("approved-tab-count");
+  const rDriverTab = document.getElementById("rejected-tab-count");
+  const allDriverTab = document.getElementById("all-driver-tab-count");
 
   if (mPending) mPending.textContent = String(driversPending);
   if (mApproved) mApproved.textContent = String(driversApproved);
   if (nDriverPending) nDriverPending.textContent = String(driversPending);
   if (pDriverTab) pDriverTab.textContent = String(driversPending);
   if (aDriverTab) aDriverTab.textContent = String(driversApproved);
+  if (rDriverTab) rDriverTab.textContent = String(driversRejected);
+  if (allDriverTab) allDriverTab.textContent = String(motoristasCache.length);
 
   const mPassPending = document.getElementById("metric-passenger-pending");
   const mPassApproved = document.getElementById("metric-passenger-approved");
@@ -517,11 +524,14 @@ function renderOverviewApprovals() {
           </div>
         </div>
         <div style="display:flex; gap:6px;">
-          <button class="btn btn-primary" style="padding:6px 12px; font-size:11px; min-height:30px; width:auto;" onclick="approvePassenger('${p.id}')">
+          <button class="btn btn-primary" style="padding:5px 10px; font-size:11px; min-height:28px; width:auto;" onclick="approvePassenger('${p.id}')">
             <i class="fas fa-check"></i> Aprovar
           </button>
-          <button class="btn btn-secondary" style="padding:6px 10px; font-size:11px; min-height:30px;" onclick="rejectPassenger('${p.id}')" title="Reprovar">
-            <i class="fas fa-xmark"></i>
+          <button class="btn btn-secondary" style="padding:5px 8px; font-size:11px; min-height:28px;" onclick="rejectPassenger('${p.id}')" title="Desativar / Reprovar">
+            <i class="fas fa-ban" style="color:#be7b20;"></i>
+          </button>
+          <button class="btn btn-secondary" style="padding:5px 8px; font-size:11px; min-height:28px;" onclick="deletePassenger('${p.id}')" title="Excluir permanentemente">
+            <i class="fas fa-trash-can" style="color:var(--red);"></i>
           </button>
         </div>
       </div>
@@ -554,11 +564,14 @@ function renderOverviewApprovals() {
           </div>
         </div>
         <div style="display:flex; gap:6px;">
-          <button class="btn btn-primary" style="padding:6px 12px; font-size:11px; min-height:30px; width:auto;" onclick="approveDriver('${m.id}')">
+          <button class="btn btn-primary" style="padding:5px 10px; font-size:11px; min-height:28px; width:auto;" onclick="approveDriver('${m.id}')">
             <i class="fas fa-check"></i> Aprovar
           </button>
-          <button class="btn btn-secondary" style="padding:6px 10px; font-size:11px; min-height:30px;" onclick="rejectDriver('${m.id}')" title="Reprovar">
-            <i class="fas fa-xmark"></i>
+          <button class="btn btn-secondary" style="padding:5px 8px; font-size:11px; min-height:28px;" onclick="rejectDriver('${m.id}')" title="Desativar / Reprovar">
+            <i class="fas fa-ban" style="color:#be7b20;"></i>
+          </button>
+          <button class="btn btn-secondary" style="padding:5px 8px; font-size:11px; min-height:28px;" onclick="deleteDriver('${m.id}')" title="Excluir permanentemente">
+            <i class="fas fa-trash-can" style="color:var(--red);"></i>
           </button>
         </div>
       </div>
@@ -1051,12 +1064,19 @@ function renderApprovals() {
   const container = document.getElementById("approvals-container");
   if (!container) return;
 
-  const list =
-    currentDriverTab === "pending"
-      ? motoristasCache.filter(
-          (m) => m.status === "Pendente" || m.vehicle_status === "Pendente",
-        )
-      : motoristasCache.filter((m) => m.status === "Aprovado");
+  let list = [];
+  if (currentDriverTab === "pending") {
+    list = motoristasCache.filter(
+      (m) => m.status === "Pendente" || m.vehicle_status === "Pendente",
+    );
+  } else if (currentDriverTab === "approved") {
+    list = motoristasCache.filter((m) => m.status === "Aprovado");
+  } else if (currentDriverTab === "rejected") {
+    list = motoristasCache.filter((m) => m.status === "Reprovado");
+  } else {
+    // "all"
+    list = [...motoristasCache];
+  }
 
   if (list.length === 0) {
     container.innerHTML =
@@ -1082,6 +1102,7 @@ function renderApprovals() {
       m.vehicle_status === "Pendente" && m.status === "Aprovado";
     const isPending =
       m.status === "Pendente" || m.vehicle_status === "Pendente";
+    const isApproved = m.status === "Aprovado";
 
     html +=
       '<tr style="border-bottom:1px solid var(--line); font-size:13px;">';
@@ -1117,28 +1138,40 @@ function renderApprovals() {
       "</td>";
     html +=
       '  <td style="padding:10px;"><span class="status-badge ' +
-      (isPending ? "pending" : "approved") +
+      (isPending ? "pending" : isApproved ? "approved" : "rejected") +
       '">' +
-      (isVehicleChange ? "Carro em Análise" : escapeHtml(m.status)) +
+      (isVehicleChange ? "Carro em Análise" : escapeHtml(m.status || "Pendente")) +
       "</span></td>";
-    html += '  <td style="padding:10px; text-align:right;">';
+    html += '  <td style="padding:10px; text-align:right; white-space:nowrap;">';
 
     if (isPending) {
       html +=
-        '    <button class="btn btn-primary" style="padding:4px 10px; font-size:12px; margin-right:5px; width:auto; min-height:30px;" onclick="approveDriver(\'' +
+        '    <button class="btn btn-primary" style="padding:5px 11px; font-size:11px; margin-right:4px; width:auto; min-height:30px;" onclick="approveDriver(\'' +
         m.id +
         '\')"><i class="fas fa-check"></i> Aprovar</button>';
       html +=
-        '    <button class="btn btn-secondary" style="padding:4px 8px; font-size:12px; min-height:30px; margin-right:5px;" onclick="rejectDriver(\'' +
+        '    <button class="btn btn-secondary" style="padding:5px 8px; font-size:11px; min-height:30px; margin-right:4px;" onclick="rejectDriver(\'' +
         m.id +
-        '\')" title="Reprovar"><i class="fas fa-ban"></i></button>';
+        '\')" title="Reprovar / Desativar"><i class="fas fa-ban" style="color:#be7b20;"></i> Desativar</button>';
       html +=
-        '    <button class="btn btn-secondary" style="padding:4px 8px; font-size:12px; min-height:30px;" onclick="deleteDriver(\'' +
+        '    <button class="btn btn-secondary" style="padding:5px 8px; font-size:11px; min-height:30px;" onclick="deleteDriver(\'' +
         m.id +
-        '\')" title="Excluir cadastro permanentemente"><i class="fas fa-trash-can" style="color:var(--red);"></i></button>';
+        '\')" title="Excluir cadastro permanentemente"><i class="fas fa-trash-can" style="color:var(--red);"></i> Excluir</button>';
+    } else if (isApproved) {
+      html +=
+        '    <button class="btn btn-secondary" style="padding:4px 8px; font-size:11px; min-height:28px; margin-right:4px;" onclick="rejectDriver(\'' +
+        m.id +
+        '\')" title="Suspender / Desativar motorista"><i class="fas fa-ban" style="color:#be7b20;"></i> Desativar</button>';
+      html +=
+        '    <button class="btn btn-secondary" style="padding:4px 8px; font-size:11px; min-height:28px;" onclick="deleteDriver(\'' +
+        m.id +
+        '\')" title="Excluir motorista permanentemente"><i class="fas fa-trash-can" style="color:var(--red);"></i> Excluir</button>';
     } else {
+      // Reprovado / Desativado
       html +=
-        '    <span style="color:var(--green); font-weight:bold; font-size:12px; margin-right:8px;"><i class="fas fa-circle-check"></i> Homologado</span>';
+        '    <button class="btn btn-primary" style="padding:4px 8px; font-size:11px; width:auto; min-height:28px; margin-right:4px;" onclick="approveDriver(\'' +
+        m.id +
+        '\')" title="Reativar e aprovar motorista"><i class="fas fa-rotate-left"></i> Reativar</button>';
       html +=
         '    <button class="btn btn-secondary" style="padding:4px 8px; font-size:11px; min-height:28px;" onclick="deleteDriver(\'' +
         m.id +
@@ -1188,13 +1221,16 @@ function renderDrivers() {
           <div><i class="fas fa-phone" style="width:18px; color:var(--green);"></i> ${escapeHtml(m.telefone || m.phone || "Sem telefone")}</div>
           <div><i class="fas fa-location-dot" style="width:18px; color:var(--green);"></i> Manaus - AM</div>
         </div>
-        <div style="border-top:1px solid var(--line); margin-top:14px; padding-top:10px; display:flex; justify-content:flex-end; gap:6px; align-items:center;">
-          <button class="btn btn-secondary" style="padding:3px 8px; font-size:11px; min-height:26px;" onclick="rejectDriver('${m.id}')" title="Suspender / Desativar motorista">
-            <i class="fas fa-ban" style="color:#be7b20;"></i> Desativar
-          </button>
-          <button class="btn btn-secondary" style="padding:3px 8px; font-size:11px; min-height:26px;" onclick="deleteDriver('${m.id}')" title="Excluir motorista permanentemente">
-            <i class="fas fa-trash-can" style="color:var(--red);"></i> Excluir
-          </button>
+        <div style="border-top:1px solid var(--line); margin-top:14px; padding-top:10px; display:flex; justify-content:space-between; align-items:center;">
+          <small style="color:#788b90; font-size:10px;">Status: <strong style="color:var(--green);">Ativo</strong></small>
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-secondary" style="padding:3px 8px; font-size:11px; min-height:26px;" onclick="rejectDriver('${m.id}')" title="Suspender / Desativar motorista">
+              <i class="fas fa-ban" style="color:#be7b20;"></i> Desativar
+            </button>
+            <button class="btn btn-secondary" style="padding:3px 8px; font-size:11px; min-height:26px;" onclick="deleteDriver('${m.id}')" title="Excluir motorista permanentemente">
+              <i class="fas fa-trash-can" style="color:var(--red);"></i> Excluir
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -1205,7 +1241,7 @@ function renderDrivers() {
 
 // --- FUNÇÕES DE APROVAÇÃO E GESTÃO DE MOTORISTAS ---
 window.approveDriver = async function (driverId) {
-  if (!confirm("Deseja aprovar este motorista / veículo?")) return;
+  if (!confirm("Deseja aprovar / reativar este motorista para a operação?")) return;
   try {
     if (supabaseClient) {
       const { error } = await supabaseClient
@@ -1215,15 +1251,22 @@ window.approveDriver = async function (driverId) {
 
       if (error && error.code !== "PGRST205") throw error;
     }
-    showNotification("Motorista aprovado com sucesso!", "success");
+
+    const item = motoristasCache.find((m) => String(m.id) === String(driverId));
+    if (item) {
+      item.status = "Aprovado";
+      item.vehicle_status = "Aprovado";
+    }
+
+    showNotification("Motorista aprovado/reativado com sucesso!", "success");
     await loadMotoristas();
   } catch (err) {
-    showNotification("Erro ao aprovar: " + err.message, "error");
+    showNotification("Erro ao aprovar motorista: " + err.message, "error");
   }
 };
 
 window.rejectDriver = async function (driverId) {
-  if (!confirm("Deseja recusar ou suspender este motorista?")) return;
+  if (!confirm("Deseja desativar / reprovar este motorista?")) return;
   try {
     if (supabaseClient) {
       const { error } = await supabaseClient
@@ -1233,10 +1276,17 @@ window.rejectDriver = async function (driverId) {
 
       if (error && error.code !== "PGRST205") throw error;
     }
-    showNotification("Motorista marcado como reprovado/suspenso.", "warning");
+
+    const item = motoristasCache.find((m) => String(m.id) === String(driverId));
+    if (item) {
+      item.status = "Reprovado";
+      item.vehicle_status = "Reprovado";
+    }
+
+    showNotification("Motorista desativado/reprovado com sucesso.", "warning");
     await loadMotoristas();
   } catch (err) {
-    showNotification("Erro ao atualizar motorista: " + err.message, "error");
+    showNotification("Erro ao desativar motorista: " + err.message, "error");
   }
 };
 
