@@ -1760,6 +1760,13 @@ function getReportPeriodLabel() {
   }
 }
 
+function filterBySinglePassenger(passengerId) {
+  currentReportPassenger = passengerId;
+  const select = document.getElementById("report-filter-passenger");
+  if (select) select.value = passengerId;
+  renderReportsView();
+}
+
 function renderReportsView() {
   const filtered = getFilteredReportRides();
   const periodLabel = getReportPeriodLabel();
@@ -1768,7 +1775,7 @@ function renderReportsView() {
   const periodBadge = document.getElementById("report-period-badge");
   if (periodBadge) periodBadge.textContent = periodLabel;
 
-  // Cálculos Consolidados
+  // Cálculos Consolidados Gerais
   const completed = filtered.filter((r) =>
     ["COMPLETED", "FINISHED", "FINALIZADA", "CONCLUIDA", "PAID"].includes(r.status)
   );
@@ -1791,7 +1798,70 @@ function renderReportsView() {
   if (kpiKm) kpiKm.innerHTML = `${totalKm.toFixed(1)} <small style="font-size:14px;">km</small>`;
   if (kpiAvg) kpiAvg.textContent = "R$ " + avgFare.toFixed(2).replace(".", ",");
 
-  // Renderiza Tabela
+  // ----------------------------------------------------
+  // 1. Resumo Consolidado Agrupado por Passageiro
+  // ----------------------------------------------------
+  const passSummaryBody = document.getElementById("report-passenger-summary-body");
+  if (passSummaryBody) {
+    const pMap = new Map();
+
+    // Agrupa todas as corridas do período atual por passageiro
+    filtered.forEach((r) => {
+      const key = r.passenger_id || r.passenger_name;
+      if (!pMap.has(key)) {
+        pMap.set(key, {
+          id: key,
+          name: r.passenger_name,
+          company: r.company,
+          ridesTotal: 0,
+          completedCount: 0,
+          totalKm: 0,
+          totalFare: 0,
+        });
+      }
+      const item = pMap.get(key);
+      item.ridesTotal += 1;
+      item.totalKm += (r.distance_km || 0);
+      if (["COMPLETED", "FINISHED", "FINALIZADA", "CONCLUIDA", "PAID"].includes(r.status)) {
+        item.completedCount += 1;
+        item.totalFare += r.fare_amount;
+      }
+    });
+
+    if (pMap.size === 0) {
+      passSummaryBody.innerHTML = '<tr><td colspan="6" class="empty-state">Nenhum passageiro com corridas no período.</td></tr>';
+    } else {
+      let sumHtml = "";
+      pMap.forEach((item) => {
+        const isSelected = currentReportPassenger === item.id;
+        sumHtml += `
+          <tr style="${isSelected ? "background: #f0fdf4;" : ""}">
+            <td>
+              <strong style="font-size:12px;">${escapeHtml(item.name)}</strong>
+              ${isSelected ? '<span class="status-badge approved" style="margin-left:6px; font-size:8px;">SELECIONADO</span>' : ""}
+            </td>
+            <td><span class="tag-company">${escapeHtml(item.company)}</span></td>
+            <td style="text-align:center; font-family:'DM Mono', monospace; font-weight:700;">${item.completedCount} <small style="color:var(--ink-soft); font-weight:normal;">(${item.ridesTotal} tot)</small></td>
+            <td style="text-align:center; font-family:'DM Mono', monospace;">${item.totalKm.toFixed(1)} km</td>
+            <td style="text-align:right; font-family:'DM Mono', monospace; font-weight:800; color:var(--green);">
+              R$ ${item.totalFare.toFixed(2).replace(".", ",")}
+            </td>
+            <td style="text-align:center;">
+              ${isSelected 
+                ? `<button type="button" class="btn btn-secondary" onclick="filterBySinglePassenger('ALL')" style="min-height:28px; padding:0 8px; font-size:10px;">Ver Todos</button>`
+                : `<button type="button" class="btn btn-secondary" onclick="filterBySinglePassenger('${escapeHtml(item.id)}')" style="min-height:28px; padding:0 8px; font-size:10px;"><i class="fas fa-filter"></i> Filtrar</button>`
+              }
+            </td>
+          </tr>
+        `;
+      });
+      passSummaryBody.innerHTML = sumHtml;
+    }
+  }
+
+  // ----------------------------------------------------
+  // 2. Renderiza Tabela Detalhada de Corridas
+  // ----------------------------------------------------
   const tbody = document.getElementById("reports-table-body");
   if (!tbody) return;
 
@@ -1861,9 +1931,72 @@ function exportReportsPDF() {
   const totalKm = filtered.reduce((acc, r) => acc + (r.distance_km || 0), 0);
 
   const selectedPassElem = document.getElementById("report-filter-passenger");
+  const isAllPassengers = currentReportPassenger === "ALL";
   const passengerFilterLabel = selectedPassElem && selectedPassElem.options[selectedPassElem.selectedIndex]
     ? selectedPassElem.options[selectedPassElem.selectedIndex].text
     : "Todos os Passageiros";
+
+  // Consolidação por Passageiro para o PDF
+  const pMap = new Map();
+  filtered.forEach((r) => {
+    const key = r.passenger_id || r.passenger_name;
+    if (!pMap.has(key)) {
+      pMap.set(key, {
+        id: key,
+        name: r.passenger_name,
+        company: r.company,
+        ridesTotal: 0,
+        completedCount: 0,
+        totalKm: 0,
+        totalFare: 0,
+      });
+    }
+    const item = pMap.get(key);
+    item.ridesTotal += 1;
+    item.totalKm += (r.distance_km || 0);
+    if (["COMPLETED", "FINISHED", "FINALIZADA", "CONCLUIDA", "PAID"].includes(r.status)) {
+      item.completedCount += 1;
+      item.totalFare += r.fare_amount;
+    }
+  });
+
+  let passengerSummaryTableHtml = "";
+  if (isAllPassengers && pMap.size > 0) {
+    let pRows = "";
+    pMap.forEach((item) => {
+      pRows += `
+        <tr style="border-bottom: 1px solid #e2e8f0; font-size: 11px;">
+          <td style="padding: 6px 8px;"><strong>${escapeHtml(item.name)}</strong></td>
+          <td style="padding: 6px 8px; color: #64748b;">${escapeHtml(item.company)}</td>
+          <td style="padding: 6px 8px; text-align: center; font-weight: bold;">${item.completedCount}</td>
+          <td style="padding: 6px 8px; text-align: center;">${item.totalKm.toFixed(1)} km</td>
+          <td style="padding: 6px 8px; text-align: right; font-weight: bold; color: #0f172a;">R$ ${item.totalFare.toFixed(2).replace(".", ",")}</td>
+        </tr>
+      `;
+    });
+
+    passengerSummaryTableHtml = `
+      <div style="margin-bottom: 20px;">
+        <div style="font-size: 12px; font-weight: 800; color: #0f172a; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.05em;">
+          ● Resumo Consolidado de Fechamento por Passageiro / Empresa
+        </div>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+          <thead>
+            <tr style="background: #e2e8f0;">
+              <th style="padding: 6px 8px; text-align: left; font-size: 10px;">Passageiro</th>
+              <th style="padding: 6px 8px; text-align: left; font-size: 10px;">Empresa Convênio</th>
+              <th style="padding: 6px 8px; text-align: center; font-size: 10px;">Corridas Feitas</th>
+              <th style="padding: 6px 8px; text-align: center; font-size: 10px;">Km Rodados</th>
+              <th style="padding: 6px 8px; text-align: right; font-size: 10px;">Subtotal (R$)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${pRows}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
 
   const rowsHtml = filtered.map((r, idx) => {
     const isComp = ["COMPLETED", "FINISHED", "FINALIZADA", "CONCLUIDA", "PAID"].includes(r.status);
@@ -1903,7 +2036,7 @@ function exportReportsPDF() {
     <html lang="pt-BR">
     <head>
       <meta charset="UTF-8">
-      <title>Relatório de Faturamento - SR Logística</title>
+      <title>Relatório de Faturamento Consolidado - SR Logística</title>
       <style>
         @page { size: A4 landscape; margin: 10mm; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; margin: 0; padding: 15px; }
@@ -1930,7 +2063,7 @@ function exportReportsPDF() {
       <div class="header">
         <div>
           <div class="title">SR LOGÍSTICA & TRANSPORTE CORPORATIVO</div>
-          <div class="subtitle">Extrato Oficial de Corridas e Fechamento de Faturamento</div>
+          <div class="subtitle">Extrato Oficial de Fechamento de Faturamento e Corridas</div>
         </div>
         <div class="doc-badge">
           <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase;">Período do Fechamento</div>
@@ -1940,7 +2073,7 @@ function exportReportsPDF() {
       </div>
 
       <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px 14px; margin-bottom:14px; font-size:11.5px;">
-        <strong>Filtro Aplicado:</strong> ${escapeHtml(passengerFilterLabel)}
+        <strong>Escopo do Relatório:</strong> ${escapeHtml(passengerFilterLabel)} (${pMap.size} passageiro(s) atendido(s))
       </div>
 
       <div class="grid">
@@ -1962,6 +2095,11 @@ function exportReportsPDF() {
         </div>
       </div>
 
+      ${passengerSummaryTableHtml}
+
+      <div style="font-size: 12px; font-weight: 800; color: #0f172a; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.05em;">
+        ● Detalhamento Individual de Cada Corrida Realizada
+      </div>
       <table>
         <thead>
           <tr>
@@ -2046,4 +2184,5 @@ function exportReportsCSV() {
   link.click();
   document.body.removeChild(link);
 }
+
 

@@ -511,11 +511,40 @@
                         </article>
                     </div>
 
+                    <!-- Resumo Consolidado por Passageiro / Empresa -->
+                    <section class="panel" style="margin-bottom:18px; padding:20px 24px;" id="panel-passengers-breakdown">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                            <strong style="font-size:12px; font-family:'DM Mono', monospace; text-transform:uppercase; color:var(--ink);">
+                                <i class="fas fa-users" style="color:var(--amber); margin-right:6px;"></i> Fechamento Consolidado por Passageiro & Empresa
+                            </strong>
+                            <span style="font-size:11px; color:var(--ink-soft);">Valores acumulados no período</span>
+                        </div>
+                        <div class="approval-table-wrap" style="border:0; margin-bottom:0;">
+                            <table class="approval-table" style="min-width:100%;">
+                                <thead>
+                                    <tr>
+                                        <th>Passageiro</th>
+                                        <th>Empresa Convênio</th>
+                                        <th style="text-align:center;">Viagens</th>
+                                        <th style="text-align:center;">Km Rodados</th>
+                                        <th style="text-align:right;">Faturamento (R$)</th>
+                                        <th style="text-align:center; width:90px;">Filtro</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="report-passenger-summary-body">
+                                    <tr>
+                                        <td colspan="6" class="loading-state">Calculando extrato de todos os passageiros...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
                     <!-- Tabela Detalhada de Corridas -->
                     <div class="approval-table-wrap">
                         <div style="padding:14px 19px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
                             <strong style="font-size:12px; font-family:'DM Mono', monospace; color:var(--ink);" id="report-table-caption">
-                                Detalhamento de Corridas
+                                Detalhamento Individual de Corridas
                             </strong>
                             <span id="report-period-badge" style="font-size:11px; font-weight:700; color:var(--green);"></span>
                         </div>
