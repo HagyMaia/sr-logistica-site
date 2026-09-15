@@ -541,30 +541,37 @@
                     </section>
 
                     <!-- Tabela Detalhada de Corridas -->
-                    <div class="approval-table-wrap">
+                    <div class="approval-table-wrap" style="overflow-x:auto;">
                         <div style="padding:14px 19px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
-                            <strong style="font-size:12px; font-family:'DM Mono', monospace; color:var(--ink);" id="report-table-caption">
-                                Detalhamento Individual de Corridas
-                            </strong>
+                            <div>
+                                <strong style="font-size:12px; font-family:'DM Mono', monospace; color:var(--ink);" id="report-table-caption">
+                                    Detalhamento Completo de Cada Corrida Realizada
+                                </strong>
+                                <small style="display:block; font-size:11px; color:var(--ink-soft); margin-top:2px;">
+                                    Exibe endereços completos de origem e destino, dados do passageiro, motorista, veículo e valores.
+                                </small>
+                            </div>
                             <span id="report-period-badge" style="font-size:11px; font-weight:700; color:var(--green);"></span>
                         </div>
-                        <table class="approval-table">
+                        <table class="approval-table" style="min-width:1150px;">
                             <thead>
                                 <tr>
-                                    <th style="width:35px; text-align:center;">#</th>
-                                    <th>Data / Hora</th>
-                                    <th>Passageiro / Empresa</th>
-                                    <th>Origem</th>
-                                    <th>Destino</th>
-                                    <th>Motorista</th>
-                                    <th style="text-align:center;">Km</th>
-                                    <th style="text-align:center;">Status</th>
-                                    <th style="text-align:right;">Valor</th>
+                                    <th style="width:30px; text-align:center;">#</th>
+                                    <th style="width:130px;">Cód. / Data</th>
+                                    <th style="width:190px;">Passageiro / Empresa</th>
+                                    <th style="min-width:220px;">Origem (Embarque)</th>
+                                    <th style="min-width:220px;">Destino (Desembarque)</th>
+                                    <th style="width:180px;">Motorista & Veículo</th>
+                                    <th style="width:90px; text-align:center;">Km / Tempo</th>
+                                    <th style="width:110px; text-align:center;">Pagamento</th>
+                                    <th style="width:105px; text-align:center;">Status</th>
+                                    <th style="width:110px; text-align:right;">Valor</th>
+                                    <th style="width:85px; text-align:center;">Ação</th>
                                 </tr>
                             </thead>
                             <tbody id="reports-table-body">
                                 <tr>
-                                    <td colspan="9" class="loading-state">Carregando relatório de corridas...</td>
+                                    <td colspan="11" class="loading-state">Carregando relatório detalhado de corridas...</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -683,6 +690,38 @@
                 </div>
                 <div id="passenger-sim-feedback" class="feedback-msg" aria-live="polite"></div>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal de Detalhes Completos da Corrida -->
+    <div id="ride-detail-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="ride-detail-modal-title">
+        <div class="modal-card" style="max-width:720px; max-height:90vh; overflow-y:auto;">
+            <button id="close-ride-detail-modal" class="toggle-password" style="position:absolute; right:16px; top:16px; font-size:18px; cursor:pointer;" aria-label="Fechar modal">
+                <i class="fas fa-xmark"></i>
+            </button>
+            <div class="eyebrow" style="margin-bottom:4px;">
+                <i class="fas fa-receipt"></i> Ficha Completa da Viagem
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; border-bottom:1px solid var(--line); padding-bottom:12px;">
+                <div>
+                    <h2 id="ride-detail-code" style="margin:0; font-size:20px; font-family:'DM Mono', monospace; color:var(--ink);">#SR-000000</h2>
+                    <small id="ride-detail-date" style="color:var(--ink-soft); font-size:11px;"></small>
+                </div>
+                <span id="ride-detail-status-badge" class="status-badge approved">FINALIZADA</span>
+            </div>
+
+            <div id="ride-detail-body" style="font-size:12.5px; line-height:1.6;">
+                <!-- Conteúdo gerado dinamicamente -->
+            </div>
+
+            <div class="form-actions" style="margin-top:20px; display:flex; justify-content:space-between; gap:10px; border-top:1px solid var(--line); padding-top:14px;">
+                <button type="button" class="btn btn-secondary" id="btn-print-single-ride">
+                    <i class="fas fa-print"></i> Imprimir Comprovante Individual
+                </button>
+                <button type="button" class="btn btn-primary" id="btn-close-ride-modal">
+                    <i class="fas fa-check"></i> Fechar
+                </button>
+            </div>
         </div>
     </div>
 

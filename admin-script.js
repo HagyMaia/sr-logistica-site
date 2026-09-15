@@ -118,6 +118,12 @@ function showDashboard() {
   const dash = document.getElementById("dashboard-container");
   if (login) login.classList.add("hidden");
   if (dash) dash.classList.remove("hidden");
+
+  const hash = (window.location.hash || "").replace("#", "");
+  if (hash && document.getElementById("view-" + hash)) {
+    switchView(hash);
+  }
+
   if (!isDataLoaded) {
     isDataLoaded = true;
     loadAllData();
