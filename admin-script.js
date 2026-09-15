@@ -1494,13 +1494,12 @@ function escapeHtml(text) {
     .replace(/'/g, "&#039;");
 }
 
-// =======================================================
-// --- MÓDULO DE RELATÓRIOS & FATURAMENTO DE CORRIDAS ---
-// =======================================================
+let activeModalRideId = null;
 
+// --- ABA: RELATÓRIOS DE CORRIDAS E FATURAMENTO CONSOLIDADO ---
 function setupReportsView() {
-  // Tabs de Período Rápido
-  const periodTabs = document.querySelectorAll("#report-period-tabs .tab");
+  // Tabs de Período
+  const periodTabs = document.querySelectorAll("#reports-period-tabs .tab, #report-period-tabs .tab");
   periodTabs.forEach((tab) => {
     tab.addEventListener("click", () => {
       periodTabs.forEach((t) => t.classList.remove("active"));
@@ -1571,17 +1570,38 @@ function setupReportsView() {
   if (btnExportCSV) {
     btnExportCSV.addEventListener("click", () => exportReportsCSV());
   }
+
+  // Modal de Detalhes da Corrida
+  const closeBtn = document.getElementById("close-ride-detail-modal");
+  if (closeBtn) closeBtn.addEventListener("click", () => closeRideDetailsModal());
+
+  const modalCloseBtn = document.getElementById("btn-close-ride-modal");
+  if (modalCloseBtn) modalCloseBtn.addEventListener("click", () => closeRideDetailsModal());
+
+  const modalOverlay = document.getElementById("ride-detail-modal");
+  if (modalOverlay) {
+    modalOverlay.addEventListener("click", (e) => {
+      if (e.target === modalOverlay) closeRideDetailsModal();
+    });
+  }
+
+  const btnPrintSingle = document.getElementById("btn-print-single-ride");
+  if (btnPrintSingle) {
+    btnPrintSingle.addEventListener("click", () => {
+      if (activeModalRideId) printSingleRideVoucher(activeModalRideId);
+    });
+  }
 }
 
 async function loadCorridasReports() {
   const tbody = document.getElementById("reports-table-body");
   if (tbody) {
-    tbody.innerHTML = '<tr><td colspan="9" class="loading-state"><i class="fas fa-spinner fa-spin"></i> Carregando viagens...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11" class="loading-state"><i class="fas fa-spinner fa-spin"></i> Carregando viagens detalhadas...</td></tr>';
   }
 
   if (!supabaseClient) {
     if (tbody) {
-      tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Supabase não conectado.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="11" class="empty-state">Supabase não conectado.</td></tr>';
     }
     return;
   }
@@ -1598,39 +1618,79 @@ async function loadCorridasReports() {
 
     const raw = ridesData || [];
 
-    // Mapeamento de motoristas e passageiros para enriquecer os dados
+    // Mapeamento enriquecido de motoristas
     const driverMap = {};
     motoristasCache.forEach((m) => {
-      driverMap[m.id] = m.nome_social || m.nome || m.nome_completo || "Motorista SR";
+      const vehicleDesc = [
+        m.marca_veiculo,
+        m.modelo_veiculo,
+        m.cor_veiculo ? `(${m.cor_veiculo})` : "",
+        m.placa_veiculo ? `• Placa: ${m.placa_veiculo}` : ""
+      ].filter(Boolean).join(" ");
+
+      driverMap[m.id] = {
+        name: m.nome_social || m.nome || m.nome_completo || "Motorista SR",
+        phone: m.telefone || m.whatsapp || "",
+        vehicle: vehicleDesc || "Veículo SR Padrão",
+        plate: m.placa_veiculo || "—",
+        model: m.modelo_veiculo || "",
+      };
     });
 
+    // Mapeamento enriquecido de passageiros
     const passMap = {};
     passageirosCache.forEach((p) => {
       passMap[p.id] = {
         name: p.nome_social || p.nome || p.nome_completo || "Passageiro",
         company: p.empresa || p.company || p.empresa_cliente || "SR Convênio",
+        phone: p.telefone || p.whatsapp || "",
+        email: p.email || "",
+        sector: p.setor || p.departamento || "",
+        shift: p.turno || "",
       };
     });
 
     corridasCache = raw.map((r) => {
       const pInfo = passMap[r.passenger_id] || {};
+      const dInfo = driverMap[r.driver_id] || {};
+
       const passengerName = r.passenger_name || pInfo.name || (r.passenger_id ? `Passageiro (${String(r.passenger_id).slice(0, 6)})` : "Passageiro SR");
       const company = r.company || pInfo.company || "Convênio SR";
-      const driverName = r.driver_name || driverMap[r.driver_id] || "Motorista SR";
+      const passengerPhone = r.passenger_phone || pInfo.phone || "";
+      const passengerEmail = r.passenger_email || pInfo.email || "";
+      const passengerSector = r.passenger_sector || pInfo.sector || "";
+
+      const driverName = r.driver_name || dInfo.name || (r.driver_id ? `Motorista (${String(r.driver_id).slice(0, 6)})` : "Motorista SR");
+      const driverPhone = r.driver_phone || dInfo.phone || "";
+      const driverVehicle = r.driver_vehicle || dInfo.vehicle || (dInfo.plate ? `Veículo Placa ${dInfo.plate}` : "Veículo Cadastrado");
 
       return {
         id: r.id,
+        code: `#SR-${String(r.id).replace(/-/g, "").slice(0, 6).toUpperCase()}`,
         created_at: r.created_at || new Date().toISOString(),
-        pickup_address: r.pickup_address || (r.pickup_lat ? `${r.pickup_lat}, ${r.pickup_lng}` : "Manaus / AM"),
-        dropoff_address: r.dropoff_address || (r.dropoff_lat ? `${r.dropoff_lat}, ${r.dropoff_lng}` : "Manaus / AM"),
+        pickup_address: r.pickup_address || (r.pickup_lat ? `Lat: ${r.pickup_lat}, Lng: ${r.pickup_lng}` : "Manaus / AM"),
+        pickup_lat: r.pickup_lat || null,
+        pickup_lng: r.pickup_lng || null,
+        dropoff_address: r.dropoff_address || (r.dropoff_lat ? `Lat: ${r.dropoff_lat}, Lng: ${r.dropoff_lng}` : "Manaus / AM"),
+        dropoff_lat: r.dropoff_lat || null,
+        dropoff_lng: r.dropoff_lng || null,
         fare_amount: Number(r.fare_amount) || 0,
         distance_km: Number(r.distance_km) || 0,
+        duration_min: Number(r.duration_min || r.duration_minutes || r.estimated_duration) || 0,
         status: String(r.status || "COMPLETED").toUpperCase(),
-        payment_method: r.payment_method || "Voucher / PIX",
+        payment_method: r.payment_method || "Voucher Corporativo",
         passenger_id: r.passenger_id,
         passenger_name: passengerName,
+        passenger_phone: passengerPhone,
+        passenger_email: passengerEmail,
+        passenger_sector: passengerSector,
         company: company,
+        driver_id: r.driver_id,
         driver_name: driverName,
+        driver_phone: driverPhone,
+        driver_vehicle: driverVehicle,
+        cancellation_reason: r.cancellation_reason || r.cancel_reason || r.reason || "",
+        notes: r.notes || r.observacoes || "",
       };
     });
 
@@ -1639,7 +1699,7 @@ async function loadCorridasReports() {
   } catch (err) {
     console.error("Erro ao carregar relatório de corridas:", err);
     if (tbody) {
-      tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Erro ao carregar relatório de corridas.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="11" class="empty-state">Erro ao carregar relatório de corridas.</td></tr>';
     }
   }
 }
@@ -1773,6 +1833,270 @@ function filterBySinglePassenger(passengerId) {
   renderReportsView();
 }
 
+function openRideDetailsModal(rideId) {
+  const ride = corridasCache.find((r) => String(r.id) === String(rideId));
+  if (!ride) return;
+
+  activeModalRideId = ride.id;
+
+  const modal = document.getElementById("ride-detail-modal");
+  const codeElem = document.getElementById("ride-detail-code");
+  const dateElem = document.getElementById("ride-detail-date");
+  const badgeElem = document.getElementById("ride-detail-status-badge");
+  const bodyElem = document.getElementById("ride-detail-body");
+
+  if (!modal || !bodyElem) return;
+
+  const isComp = ["COMPLETED", "FINISHED", "FINALIZADA", "CONCLUIDA", "PAID"].includes(ride.status);
+  const isCanc = ["CANCELLED", "CANCELED", "CANCELADA", "REJECTED"].includes(ride.status);
+  const statusClass = isComp ? "approved" : isCanc ? "rejected" : "pending";
+  const statusText = isComp ? "FINALIZADA" : isCanc ? "CANCELADA" : "EM ANDAMENTO";
+
+  if (codeElem) codeElem.textContent = ride.code;
+  if (dateElem) dateElem.textContent = `Solicitada em: ${new Date(ride.created_at).toLocaleString("pt-BR")}`;
+  if (badgeElem) {
+    badgeElem.className = `status-badge ${statusClass}`;
+    badgeElem.textContent = statusText;
+  }
+
+  const mapsPickupUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ride.pickup_address)}`;
+  const mapsDropoffUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ride.dropoff_address)}`;
+
+  const cleanPhone = (ride.passenger_phone || "").replace(/\D/g, "");
+  const cleanDriverPhone = (ride.driver_phone || "").replace(/\D/g, "");
+
+  bodyElem.innerHTML = `
+    <!-- Card Passageiro & Empresa -->
+    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px 16px; margin-bottom:12px;">
+      <div style="font-size:10px; font-weight:800; text-transform:uppercase; color:#64748b; margin-bottom:6px; letter-spacing:0.04em;">
+        <i class="fas fa-user" style="color:var(--green); margin-right:4px;"></i> Dados do Passageiro & Empresa
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:8px;">
+        <div>
+          <div style="font-size:11px; color:#64748b;">Nome Completo:</div>
+          <strong style="font-size:13px; color:#0f172a;">${escapeHtml(ride.passenger_name)}</strong>
+        </div>
+        <div>
+          <div style="font-size:11px; color:#64748b;">Empresa Cliente / Convênio:</div>
+          <span class="tag-company" style="font-size:11.5px;">${escapeHtml(ride.company)}</span>
+        </div>
+        ${ride.passenger_sector ? `
+          <div>
+            <div style="font-size:11px; color:#64748b;">Setor / Turno:</div>
+            <strong style="font-size:12px; color:#0f172a;">${escapeHtml(ride.passenger_sector)}</strong>
+          </div>
+        ` : ""}
+        ${ride.passenger_phone ? `
+          <div>
+            <div style="font-size:11px; color:#64748b;">Contato / WhatsApp:</div>
+            <a href="https://wa.me/55${cleanPhone}" target="_blank" style="font-size:12px; font-weight:bold; color:var(--green); text-decoration:none;">
+              <i class="fab fa-whatsapp"></i> ${escapeHtml(ride.passenger_phone)}
+            </a>
+          </div>
+        ` : ""}
+      </div>
+    </div>
+
+    <!-- Card Motorista & Veículo -->
+    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px 16px; margin-bottom:12px;">
+      <div style="font-size:10px; font-weight:800; text-transform:uppercase; color:#64748b; margin-bottom:6px; letter-spacing:0.04em;">
+        <i class="fas fa-car" style="color:var(--amber); margin-right:4px;"></i> Motorista & Veículo Designado
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:8px;">
+        <div>
+          <div style="font-size:11px; color:#64748b;">Motorista:</div>
+          <strong style="font-size:13px; color:#0f172a;">${escapeHtml(ride.driver_name)}</strong>
+        </div>
+        <div>
+          <div style="font-size:11px; color:#64748b;">Veículo & Placa:</div>
+          <strong style="font-size:12px; color:#0f172a;">${escapeHtml(ride.driver_vehicle)}</strong>
+        </div>
+        ${ride.driver_phone ? `
+          <div>
+            <div style="font-size:11px; color:#64748b;">WhatsApp Motorista:</div>
+            <a href="https://wa.me/55${cleanDriverPhone}" target="_blank" style="font-size:12px; font-weight:bold; color:var(--green); text-decoration:none;">
+              <i class="fab fa-whatsapp"></i> ${escapeHtml(ride.driver_phone)}
+            </a>
+          </div>
+        ` : ""}
+      </div>
+    </div>
+
+    <!-- Card Trajeto Completo -->
+    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px 16px; margin-bottom:12px;">
+      <div style="font-size:10px; font-weight:800; text-transform:uppercase; color:#64748b; margin-bottom:8px; letter-spacing:0.04em;">
+        <i class="fas fa-route" style="color:#0284c7; margin-right:4px;"></i> Trajeto Completo da Corrida
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="display:flex; align-items:flex-start; gap:8px;">
+          <div style="color:var(--green); font-size:14px; margin-top:2px;"><i class="fas fa-circle-dot"></i></div>
+          <div style="flex:1;">
+            <div style="font-size:10.5px; font-weight:bold; color:var(--green); text-transform:uppercase;">Origem (Local de Embarque)</div>
+            <div style="font-size:12.5px; font-weight:600; color:#0f172a; margin-top:1px;">${escapeHtml(ride.pickup_address)}</div>
+            <a href="${mapsPickupUrl}" target="_blank" style="display:inline-block; margin-top:3px; font-size:11px; color:#0284c7; text-decoration:none;">
+              <i class="fas fa-arrow-up-right-from-square"></i> Ver no Google Maps
+            </a>
+          </div>
+        </div>
+
+        <div style="border-left: 2px dashed #cbd5e1; margin-left: 6px; height: 12px;"></div>
+
+        <div style="display:flex; align-items:flex-start; gap:8px;">
+          <div style="color:var(--amber); font-size:14px; margin-top:2px;"><i class="fas fa-location-dot"></i></div>
+          <div style="flex:1;">
+            <div style="font-size:10.5px; font-weight:bold; color:var(--amber); text-transform:uppercase;">Destino (Local de Desembarque)</div>
+            <div style="font-size:12.5px; font-weight:600; color:#0f172a; margin-top:1px;">${escapeHtml(ride.dropoff_address)}</div>
+            <a href="${mapsDropoffUrl}" target="_blank" style="display:inline-block; margin-top:3px; font-size:11px; color:#0284c7; text-decoration:none;">
+              <i class="fas fa-arrow-up-right-from-square"></i> Ver no Google Maps
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card Métricas Financeiras & Operacionais -->
+    <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-bottom:12px;">
+      <div style="background:#f8fafc; border:1px solid #cbd5e1; padding:10px; border-radius:8px; text-align:center;">
+        <div style="font-size:10px; color:#64748b; font-weight:bold; text-transform:uppercase;">Distância</div>
+        <div style="font-size:15px; font-weight:900; color:#0f172a; font-family:'DM Mono', monospace;">
+          ${ride.distance_km ? `${ride.distance_km.toFixed(1)} km` : "-"}
+        </div>
+      </div>
+      <div style="background:#f8fafc; border:1px solid #cbd5e1; padding:10px; border-radius:8px; text-align:center;">
+        <div style="font-size:10px; color:#64748b; font-weight:bold; text-transform:uppercase;">Forma Pagamento</div>
+        <div style="font-size:12px; font-weight:700; color:#0f172a; margin-top:2px;">
+          ${escapeHtml(ride.payment_method)}
+        </div>
+      </div>
+      <div style="background:#0f172a; border:1px solid #0f172a; padding:10px; border-radius:8px; text-align:center; color:#fff;">
+        <div style="font-size:10px; color:#94a3b8; font-weight:bold; text-transform:uppercase;">Valor Total</div>
+        <div style="font-size:15px; font-weight:900; color:#38bdf8; font-family:'DM Mono', monospace;">
+          R$ ${ride.fare_amount.toFixed(2).replace(".", ",")}
+        </div>
+      </div>
+    </div>
+
+    ${ride.cancellation_reason ? `
+      <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:10px 14px; margin-bottom:8px; font-size:12px; color:#991b1b;">
+        <strong><i class="fas fa-triangle-exclamation"></i> Motivo do Cancelamento:</strong> ${escapeHtml(ride.cancellation_reason)}
+      </div>
+    ` : ""}
+
+    ${ride.notes ? `
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:10px 14px; font-size:12px; color:#475569;">
+        <strong><i class="fas fa-note-sticky"></i> Observações da Viagem:</strong> ${escapeHtml(ride.notes)}
+      </div>
+    ` : ""}
+  `;
+
+  modal.classList.remove("hidden");
+}
+
+function closeRideDetailsModal() {
+  const modal = document.getElementById("ride-detail-modal");
+  if (modal) modal.classList.add("hidden");
+  activeModalRideId = null;
+}
+
+function printSingleRideVoucher(rideId) {
+  const ride = corridasCache.find((r) => String(r.id) === String(rideId));
+  if (!ride) return;
+
+  const printWindow = window.open("", "_blank", "width=850,height=700");
+  if (!printWindow) {
+    alert("Por favor, permita pop-ups para imprimir o comprovante da corrida.");
+    return;
+  }
+
+  const dateStr = new Date(ride.created_at).toLocaleString("pt-BR");
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8">
+      <title>Comprovante de Corrida - ${ride.code}</title>
+      <style>
+        @page { size: A4 portrait; margin: 15mm; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; margin: 0; padding: 20px; }
+        .header { display: flex; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 12px; margin-bottom: 20px; }
+        .title { font-size: 18px; font-weight: 900; }
+        .subtitle { font-size: 11px; color: #64748b; }
+        .box { background: #f8fafc; border: 1px solid #cbd5e1; padding: 14px; border-radius: 8px; margin-bottom: 15px; }
+        .box-title { font-size: 11px; font-weight: 800; text-transform: uppercase; color: #64748b; margin-bottom: 8px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px; }
+        .value-box { background: #0f172a; color: #fff; padding: 12px; border-radius: 8px; text-align: center; margin-top: 15px; }
+        .signatures { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; text-align: center; font-size: 11px; color: #475569; }
+        .sig-line { border-top: 1px solid #94a3b8; padding-top: 6px; font-weight: 600; }
+        .footer { margin-top: 30px; text-align: center; font-size: 10px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 8px; }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <div>
+          <div class="title">SR LOGÍSTICA & TRANSPORTE CORPORATIVO</div>
+          <div class="subtitle">Comprovante Individual de Prestação de Serviço de Transporte</div>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 14px; font-weight: 900;">${ride.code}</div>
+          <div style="font-size: 11px; color: #64748b;">${dateStr}</div>
+        </div>
+      </div>
+
+      <div class="box">
+        <div class="box-title">1. Dados do Passageiro & Empresa</div>
+        <div class="grid">
+          <div><strong>Passageiro:</strong> ${escapeHtml(ride.passenger_name)}</div>
+          <div><strong>Empresa:</strong> ${escapeHtml(ride.company)}</div>
+          ${ride.passenger_phone ? `<div><strong>Contato:</strong> ${escapeHtml(ride.passenger_phone)}</div>` : ""}
+          ${ride.passenger_sector ? `<div><strong>Setor:</strong> ${escapeHtml(ride.passenger_sector)}</div>` : ""}
+        </div>
+      </div>
+
+      <div class="box">
+        <div class="box-title">2. Motorista & Veículo Designado</div>
+        <div class="grid">
+          <div><strong>Motorista:</strong> ${escapeHtml(ride.driver_name)}</div>
+          <div><strong>Veículo / Placa:</strong> ${escapeHtml(ride.driver_vehicle)}</div>
+        </div>
+      </div>
+
+      <div class="box">
+        <div class="box-title">3. Trajeto Percorrido</div>
+        <div style="font-size: 12px; line-height: 1.6;">
+          <div><strong style="color: #15803d;">● Embarque (Origem):</strong> ${escapeHtml(ride.pickup_address)}</div>
+          <div style="margin-top: 6px;"><strong style="color: #b45309;">● Desembarque (Destino):</strong> ${escapeHtml(ride.dropoff_address)}</div>
+        </div>
+      </div>
+
+      <div class="box">
+        <div class="box-title">4. Métricas & Faturamento</div>
+        <div class="grid">
+          <div><strong>Distância Percorrida:</strong> ${ride.distance_km ? `${ride.distance_km.toFixed(1)} km` : "-"}</div>
+          <div><strong>Forma de Pagamento:</strong> ${escapeHtml(ride.payment_method)}</div>
+          <div><strong>Status da Corrida:</strong> ${ride.status}</div>
+          <div><strong>Valor da Viagem:</strong> R$ ${ride.fare_amount.toFixed(2).replace(".", ",")}</div>
+        </div>
+      </div>
+
+      <div class="signatures">
+        <div><div class="sig-line">Assinatura do Passageiro</div></div>
+        <div><div class="sig-line">Motorista / SR Logística</div></div>
+      </div>
+
+      <div class="footer">
+        SR Logística e Transporte Ltda • CNPJ 52.967.828/0001-17 • Manaus - AM
+      </div>
+
+      <script>
+        window.onload = function() { setTimeout(function() { window.print(); }, 300); }
+      </script>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
+}
+
 function renderReportsView() {
   const filtered = getFilteredReportRides();
   const periodLabel = getReportPeriodLabel();
@@ -1866,13 +2190,13 @@ function renderReportsView() {
   }
 
   // ----------------------------------------------------
-  // 2. Renderiza Tabela Detalhada de Corridas
+  // 2. Renderiza Tabela Detalhada com Todas as Informações
   // ----------------------------------------------------
   const tbody = document.getElementById("reports-table-body");
   if (!tbody) return;
 
   if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Nenhuma corrida encontrada para os filtros selecionados.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11" class="empty-state">Nenhuma corrida encontrada para os filtros selecionados.</td></tr>';
     return;
   }
 
@@ -1894,24 +2218,74 @@ function renderReportsView() {
     html += `
       <tr>
         <td style="text-align:center; font-family:'DM Mono', monospace; font-weight:bold; color:var(--ink-soft);">${idx + 1}</td>
-        <td style="white-space:nowrap; font-size:11.5px; font-weight:600;">${dateStr}</td>
+        
+        <!-- Cód. & Data -->
+        <td>
+          <div style="font-family:'DM Mono', monospace; font-weight:700; color:var(--ink); font-size:11.5px;">${r.code}</div>
+          <small style="color:var(--ink-soft); font-size:10px;">${dateStr}</small>
+        </td>
+
+        <!-- Passageiro & Empresa -->
         <td>
           <strong style="font-size:12px; display:block;">${escapeHtml(r.passenger_name)}</strong>
-          <small style="color:var(--ink-soft); font-size:10px;">${escapeHtml(r.company)}</small>
+          <span class="tag-company" style="font-size:10px; margin-top:2px;">${escapeHtml(r.company)}</span>
+          ${r.passenger_phone ? `<div style="font-size:10px; color:var(--ink-soft); margin-top:2px;"><i class="fas fa-phone"></i> ${escapeHtml(r.passenger_phone)}</div>` : ""}
         </td>
-        <td style="font-size:11.5px; max-width:180px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;" title="${escapeHtml(r.pickup_address)}">
-          <span style="color:var(--green); font-weight:bold;">●</span> ${escapeHtml(r.pickup_address)}
+
+        <!-- Origem (Embarque) -->
+        <td style="font-size:11.5px; max-width:220px;" title="${escapeHtml(r.pickup_address)}">
+          <div style="display:flex; align-items:flex-start; gap:4px;">
+            <span style="color:var(--green); font-size:12px; margin-top:1px;"><i class="fas fa-circle-dot"></i></span>
+            <span style="overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">
+              ${escapeHtml(r.pickup_address)}
+            </span>
+          </div>
         </td>
-        <td style="font-size:11.5px; max-width:180px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;" title="${escapeHtml(r.dropoff_address)}">
-          <span style="color:var(--amber); font-weight:bold;">●</span> ${escapeHtml(r.dropoff_address)}
+
+        <!-- Destino (Desembarque) -->
+        <td style="font-size:11.5px; max-width:220px;" title="${escapeHtml(r.dropoff_address)}">
+          <div style="display:flex; align-items:flex-start; gap:4px;">
+            <span style="color:var(--amber); font-size:12px; margin-top:1px;"><i class="fas fa-location-dot"></i></span>
+            <span style="overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;">
+              ${escapeHtml(r.dropoff_address)}
+            </span>
+          </div>
         </td>
-        <td style="font-size:11.5px;">${escapeHtml(r.driver_name)}</td>
-        <td style="text-align:center; font-family:'DM Mono', monospace; font-size:11px;">${r.distance_km ? `${r.distance_km.toFixed(1)} km` : "-"}</td>
+
+        <!-- Motorista & Veículo -->
+        <td>
+          <strong style="font-size:11.5px; display:block;">${escapeHtml(r.driver_name)}</strong>
+          <small style="color:var(--ink-soft); font-size:10px; display:block;">${escapeHtml(r.driver_vehicle)}</small>
+        </td>
+
+        <!-- Km / Duração -->
+        <td style="text-align:center;">
+          <div style="font-family:'DM Mono', monospace; font-size:11px; font-weight:700;">${r.distance_km ? `${r.distance_km.toFixed(1)} km` : "-"}</div>
+          ${r.duration_min ? `<small style="font-size:10px; color:var(--ink-soft);">${r.duration_min} min</small>` : ""}
+        </td>
+
+        <!-- Pagamento -->
+        <td style="text-align:center; font-size:10.5px; color:#475569;">
+          <span style="background:#f1f5f9; padding:3px 6px; border-radius:4px; font-weight:600;">
+            ${escapeHtml(r.payment_method)}
+          </span>
+        </td>
+
+        <!-- Status -->
         <td style="text-align:center;">
           <span class="status-badge ${statusClass}">${statusText}</span>
         </td>
-        <td style="text-align:right; font-family:'DM Mono', monospace; font-weight:700; font-size:12px; color:var(--ink);">
+
+        <!-- Valor -->
+        <td style="text-align:right; font-family:'DM Mono', monospace; font-weight:800; font-size:12.5px; color:var(--ink);">
           R$ ${r.fare_amount.toFixed(2).replace(".", ",")}
+        </td>
+
+        <!-- Ação / Ver Ficha -->
+        <td style="text-align:center;">
+          <button type="button" class="btn btn-secondary" onclick="openRideDetailsModal('${escapeHtml(r.id)}')" style="min-height:28px; padding:0 8px; font-size:11px;" title="Ver ficha completa da corrida">
+            <i class="fas fa-eye"></i> Ver
+          </button>
         </td>
       </tr>
     `;
@@ -1974,7 +2348,7 @@ function exportReportsPDF() {
         <tr style="border-bottom: 1px solid #e2e8f0; font-size: 11px;">
           <td style="padding: 6px 8px;"><strong>${escapeHtml(item.name)}</strong></td>
           <td style="padding: 6px 8px; color: #64748b;">${escapeHtml(item.company)}</td>
-          <td style="padding: 6px 8px; text-align: center; font-weight: bold;">${item.completedCount}</td>
+          <td style="padding: 6px 8px; text-align: center; font-weight: bold;">${item.completedCount} / ${item.ridesTotal}</td>
           <td style="padding: 6px 8px; text-align: center;">${item.totalKm.toFixed(1)} km</td>
           <td style="padding: 6px 8px; text-align: right; font-weight: bold; color: #0f172a;">R$ ${item.totalFare.toFixed(2).replace(".", ",")}</td>
         </tr>
@@ -1984,7 +2358,7 @@ function exportReportsPDF() {
     passengerSummaryTableHtml = `
       <div style="margin-bottom: 20px;">
         <div style="font-size: 12px; font-weight: 800; color: #0f172a; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.05em;">
-          ● Resumo Consolidado de Fechamento por Passageiro / Empresa
+          ● Resumo Consolidado de Fechamento por Passageiro & Empresa
         </div>
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
           <thead>
@@ -2013,20 +2387,21 @@ function exportReportsPDF() {
     const dateStr = new Date(r.created_at).toLocaleString("pt-BR");
 
     return `
-      <tr style="border-bottom: 1px solid #e2e8f0; font-size: 11px;">
-        <td style="padding: 7px 6px; text-align: center; font-weight: bold; color: #64748b;">${idx + 1}</td>
-        <td style="padding: 7px 6px; white-space: nowrap; color: #334155;">${dateStr}</td>
-        <td style="padding: 7px 6px;"><strong>${escapeHtml(r.passenger_name)}</strong><br><small style="color:#64748b;">${escapeHtml(r.company)}</small></td>
-        <td style="padding: 7px 6px; max-width: 170px;">${escapeHtml(r.pickup_address)}</td>
-        <td style="padding: 7px 6px; max-width: 170px;">${escapeHtml(r.dropoff_address)}</td>
-        <td style="padding: 7px 6px;">${escapeHtml(r.driver_name)}</td>
-        <td style="padding: 7px 6px; text-align: center;">${r.distance_km ? `${r.distance_km.toFixed(1)} km` : "-"}</td>
-        <td style="padding: 7px 6px; text-align: center;">
-          <span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 10px; background: ${statusColor}18; color: ${statusColor};">
+      <tr style="border-bottom: 1px solid #e2e8f0; font-size: 10.5px;">
+        <td style="padding: 6px 5px; text-align: center; font-weight: bold; color: #64748b;">${idx + 1}</td>
+        <td style="padding: 6px 5px; white-space: nowrap; color: #334155;"><strong>${r.code}</strong><br><small>${dateStr}</small></td>
+        <td style="padding: 6px 5px;"><strong>${escapeHtml(r.passenger_name)}</strong><br><small style="color:#64748b;">${escapeHtml(r.company)}</small></td>
+        <td style="padding: 6px 5px; max-width: 170px;"><span style="color:#15803d; font-weight:bold;">● </span>${escapeHtml(r.pickup_address)}</td>
+        <td style="padding: 6px 5px; max-width: 170px;"><span style="color:#b45309; font-weight:bold;">● </span>${escapeHtml(r.dropoff_address)}</td>
+        <td style="padding: 6px 5px;"><strong>${escapeHtml(r.driver_name)}</strong><br><small style="color:#64748b;">${escapeHtml(r.driver_vehicle)}</small></td>
+        <td style="padding: 6px 5px; text-align: center;">${r.distance_km ? `${r.distance_km.toFixed(1)} km` : "-"}</td>
+        <td style="padding: 6px 5px; text-align: center; font-size: 9.5px;">${escapeHtml(r.payment_method)}</td>
+        <td style="padding: 6px 5px; text-align: center;">
+          <span style="display: inline-block; padding: 2px 5px; border-radius: 4px; font-weight: 700; font-size: 9.5px; background: ${statusColor}18; color: ${statusColor};">
             ${statusLabel}
           </span>
         </td>
-        <td style="padding: 7px 6px; text-align: right; font-weight: bold; color: #0f172a;">R$ ${r.fare_amount.toFixed(2).replace(".", ",")}</td>
+        <td style="padding: 6px 5px; text-align: right; font-weight: bold; color: #0f172a;">R$ ${r.fare_amount.toFixed(2).replace(".", ",")}</td>
       </tr>
     `;
   }).join("");
@@ -2058,7 +2433,7 @@ function exportReportsPDF() {
         .box.highlight .val { color: #38bdf8; }
         .box.highlight .lbl { color: #94a3b8; }
         table { width: 100%; border-collapse: collapse; }
-        th { background: #f1f5f9; text-align: left; padding: 8px 6px; font-size: 10.5px; text-transform: uppercase; border-bottom: 2px solid #cbd5e1; }
+        th { background: #f1f5f9; text-align: left; padding: 8px 5px; font-size: 10px; text-transform: uppercase; border-bottom: 2px solid #cbd5e1; }
         .signatures { margin-top: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 50px; text-align: center; font-size: 11px; color: #475569; }
         .sig-line { border-top: 1px solid #94a3b8; padding-top: 6px; font-weight: 600; }
         .footer { margin-top: 25px; text-align: center; font-size: 10px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 8px; }
@@ -2110,12 +2485,13 @@ function exportReportsPDF() {
         <thead>
           <tr>
             <th style="width:25px; text-align:center;">#</th>
-            <th>Data / Hora</th>
+            <th>Cód. / Data</th>
             <th>Passageiro / Empresa</th>
-            <th>Origem</th>
-            <th>Destino</th>
-            <th>Motorista</th>
+            <th>Origem (Embarque)</th>
+            <th>Destino (Desembarque)</th>
+            <th>Motorista & Veículo</th>
             <th style="text-align:center;">Km</th>
+            <th style="text-align:center;">Pagamento</th>
             <th style="text-align:center;">Status</th>
             <th style="text-align:right;">Valor</th>
           </tr>
@@ -2153,30 +2529,36 @@ function exportReportsCSV() {
   }
 
   const headers = [
-    "ID",
+    "Codigo_Corrida",
     "Data_Hora",
     "Passageiro",
     "Empresa",
-    "Origem",
-    "Destino",
+    "Telefone_Passageiro",
+    "Endereco_Origem",
+    "Endereco_Destino",
     "Motorista",
-    "KM",
-    "Status",
+    "Veiculo_Placa",
+    "Distancia_KM",
+    "Duracao_Min",
     "Forma_Pagamento",
+    "Status",
     "Valor_R$",
   ];
 
   const rows = filtered.map((r) => [
-    `"${r.id}"`,
+    `"${r.code}"`,
     `"${new Date(r.created_at).toLocaleString("pt-BR")}"`,
     `"${(r.passenger_name || "").replace(/"/g, '""')}"`,
     `"${(r.company || "").replace(/"/g, '""')}"`,
+    `"${(r.passenger_phone || "").replace(/"/g, '""')}"`,
     `"${(r.pickup_address || "").replace(/"/g, '""')}"`,
     `"${(r.dropoff_address || "").replace(/"/g, '""')}"`,
     `"${(r.driver_name || "").replace(/"/g, '""')}"`,
-    `"${r.distance_km || 0}"`,
+    `"${(r.driver_vehicle || "").replace(/"/g, '""')}"`,
+    `"${r.distance_km ? r.distance_km.toFixed(1) : 0}"`,
+    `"${r.duration_min || 0}"`,
+    `"${r.payment_method || "Voucher"}"`,
     `"${r.status}"`,
-    `"${r.payment_method || "PIX"}"`,
     `"${r.fare_amount.toFixed(2).replace(".", ",")}"`,
   ]);
 
@@ -2185,7 +2567,7 @@ function exportReportsCSV() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `relatorio_faturamento_sr_${currentReportPeriod.toLowerCase()}_${Date.now()}.csv`;
+  link.download = `relatorio_corridas_completo_sr_${currentReportPeriod.toLowerCase()}_${Date.now()}.csv`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
