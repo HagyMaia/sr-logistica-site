@@ -37,6 +37,14 @@ let passengerBaseSearchQuery = "";
 let motoristasCache = [];
 let passageirosCache = [];
 let postsCache = [];
+let corridasCache = [];
+
+// Estado do Relatório de Corridas e Faturamento
+let currentReportPeriod = "CURRENT_MONTH";
+let currentReportPassenger = "ALL";
+let currentReportStatus = "COMPLETED";
+let customReportStart = "";
+let customReportEnd = "";
 
 // Monitor de mudança de autenticação em tempo real
 if (supabaseClient && supabaseClient.auth) {
@@ -58,6 +66,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupPostsForm();
   setupPassengerModal();
   setupPassengerFilters();
+  setupReportsView();
   checkSession();
 });
 
@@ -339,10 +348,15 @@ function switchView(viewId) {
       approvals: "Aprovações de Motoristas",
       passengers: "Passageiros Homologados",
       drivers: "Motoristas Cadastrados",
+      reports: "Relatórios de Corridas & Faturamento",
       posts: "Comunicados",
       security: "Segurança",
     };
     titleElem.textContent = titles[viewId] || "Painel Admin";
+  }
+
+  if (viewId === "reports") {
+    loadCorridasReports();
   }
 
   // Fecha o menu mobile ao navegar
@@ -354,7 +368,12 @@ function switchView(viewId) {
 
 // --- CARREGAMENTO CENTRAL ---
 async function loadAllData() {
-  await Promise.all([loadMotoristas(), loadPassageiros(), loadPosts()]);
+  await Promise.all([
+    loadMotoristas(),
+    loadPassageiros(),
+    loadPosts(),
+    loadCorridasReports(),
+  ]);
 }
 
 // --- PASSAGEIROS: CARREGAMENTO & CACHE ---
@@ -1468,3 +1487,563 @@ function escapeHtml(text) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
+
+// =======================================================
+// --- MÓDULO DE RELATÓRIOS & FATURAMENTO DE CORRIDAS ---
+// =======================================================
+
+function setupReportsView() {
+  // Tabs de Período Rápido
+  const periodTabs = document.querySelectorAll("#report-period-tabs .tab");
+  periodTabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      periodTabs.forEach((t) => t.classList.remove("active"));
+      tab.classList.add("active");
+      currentReportPeriod = tab.getAttribute("data-period") || "CURRENT_MONTH";
+
+      const startWrap = document.getElementById("custom-date-start-wrap");
+      const endWrap = document.getElementById("custom-date-end-wrap");
+      if (currentReportPeriod === "CUSTOM") {
+        if (startWrap) startWrap.classList.remove("hidden");
+        if (endWrap) endWrap.classList.remove("hidden");
+      } else {
+        if (startWrap) startWrap.classList.add("hidden");
+        if (endWrap) endWrap.classList.add("hidden");
+      }
+
+      renderReportsView();
+    });
+  });
+
+  // Filtro por Passageiro
+  const passFilter = document.getElementById("report-filter-passenger");
+  if (passFilter) {
+    passFilter.addEventListener("change", (e) => {
+      currentReportPassenger = e.target.value;
+      renderReportsView();
+    });
+  }
+
+  // Filtro por Status
+  const statusFilter = document.getElementById("report-filter-status");
+  if (statusFilter) {
+    statusFilter.addEventListener("change", (e) => {
+      currentReportStatus = e.target.value;
+      renderReportsView();
+    });
+  }
+
+  // Datas personalizadas
+  const startInput = document.getElementById("report-custom-start");
+  if (startInput) {
+    startInput.addEventListener("change", (e) => {
+      customReportStart = e.target.value;
+      renderReportsView();
+    });
+  }
+
+  const endInput = document.getElementById("report-custom-end");
+  if (endInput) {
+    endInput.addEventListener("change", (e) => {
+      customReportEnd = e.target.value;
+      renderReportsView();
+    });
+  }
+
+  // Botões de Ação
+  const btnRefresh = document.getElementById("refresh-reports");
+  if (btnRefresh) {
+    btnRefresh.addEventListener("click", () => loadCorridasReports());
+  }
+
+  const btnExportPDF = document.getElementById("btn-export-pdf-report");
+  if (btnExportPDF) {
+    btnExportPDF.addEventListener("click", () => exportReportsPDF());
+  }
+
+  const btnExportCSV = document.getElementById("btn-export-csv-report");
+  if (btnExportCSV) {
+    btnExportCSV.addEventListener("click", () => exportReportsCSV());
+  }
+}
+
+async function loadCorridasReports() {
+  const tbody = document.getElementById("reports-table-body");
+  if (tbody) {
+    tbody.innerHTML = '<tr><td colspan="9" class="loading-state"><i class="fas fa-spinner fa-spin"></i> Carregando viagens...</td></tr>';
+  }
+
+  if (!supabaseClient) {
+    if (tbody) {
+      tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Supabase não conectado.</td></tr>';
+    }
+    return;
+  }
+
+  try {
+    const { data: ridesData, error } = await supabaseClient
+      .from("rides")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.warn("Aviso ao buscar tabela 'rides':", error.message);
+    }
+
+    const raw = ridesData || [];
+
+    // Mapeamento de motoristas e passageiros para enriquecer os dados
+    const driverMap = {};
+    motoristasCache.forEach((m) => {
+      driverMap[m.id] = m.nome_social || m.nome || m.nome_completo || "Motorista SR";
+    });
+
+    const passMap = {};
+    passageirosCache.forEach((p) => {
+      passMap[p.id] = {
+        name: p.nome_social || p.nome || p.nome_completo || "Passageiro",
+        company: p.empresa || p.company || p.empresa_cliente || "SR Convênio",
+      };
+    });
+
+    corridasCache = raw.map((r) => {
+      const pInfo = passMap[r.passenger_id] || {};
+      const passengerName = r.passenger_name || pInfo.name || (r.passenger_id ? `Passageiro (${String(r.passenger_id).slice(0, 6)})` : "Passageiro SR");
+      const company = r.company || pInfo.company || "Convênio SR";
+      const driverName = r.driver_name || driverMap[r.driver_id] || "Motorista SR";
+
+      return {
+        id: r.id,
+        created_at: r.created_at || new Date().toISOString(),
+        pickup_address: r.pickup_address || (r.pickup_lat ? `${r.pickup_lat}, ${r.pickup_lng}` : "Manaus / AM"),
+        dropoff_address: r.dropoff_address || (r.dropoff_lat ? `${r.dropoff_lat}, ${r.dropoff_lng}` : "Manaus / AM"),
+        fare_amount: Number(r.fare_amount) || 0,
+        distance_km: Number(r.distance_km) || 0,
+        status: String(r.status || "COMPLETED").toUpperCase(),
+        payment_method: r.payment_method || "Voucher / PIX",
+        passenger_id: r.passenger_id,
+        passenger_name: passengerName,
+        company: company,
+        driver_name: driverName,
+      };
+    });
+
+    populateReportPassengerOptions();
+    renderReportsView();
+  } catch (err) {
+    console.error("Erro ao carregar relatório de corridas:", err);
+    if (tbody) {
+      tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Erro ao carregar relatório de corridas.</td></tr>';
+    }
+  }
+}
+
+function populateReportPassengerOptions() {
+  const select = document.getElementById("report-filter-passenger");
+  if (!select) return;
+
+  const currentVal = select.value;
+  const passengersSet = new Map();
+
+  corridasCache.forEach((r) => {
+    const key = r.passenger_id || r.passenger_name;
+    if (key && !passengersSet.has(key)) {
+      passengersSet.set(key, {
+        id: key,
+        label: `${r.passenger_name} (${r.company})`,
+      });
+    }
+  });
+
+  let optionsHtml = '<option value="ALL">Todos os Passageiros / Empresas</option>';
+  passengersSet.forEach((item) => {
+    optionsHtml += `<option value="${escapeHtml(item.id)}">${escapeHtml(item.label)}</option>`;
+  });
+
+  select.innerHTML = optionsHtml;
+  if (currentVal && passengersSet.has(currentVal)) {
+    select.value = currentVal;
+  }
+}
+
+function getFilteredReportRides() {
+  return corridasCache.filter((ride) => {
+    // 1. Filtro por Passageiro
+    if (currentReportPassenger !== "ALL") {
+      const matchId = ride.passenger_id === currentReportPassenger;
+      const matchName = ride.passenger_name === currentReportPassenger;
+      if (!matchId && !matchName) return false;
+    }
+
+    // 2. Filtro por Status
+    const isComp = ["COMPLETED", "FINISHED", "FINALIZADA", "CONCLUIDA", "PAID"].includes(ride.status);
+    const isCanc = ["CANCELLED", "CANCELED", "CANCELADA", "REJECTED"].includes(ride.status);
+
+    if (currentReportStatus === "COMPLETED" && !isComp) return false;
+    if (currentReportStatus === "CANCELLED" && !isCanc) return false;
+
+    // 3. Filtro por Período
+    if (currentReportPeriod === "ALL") return true;
+
+    const rideDate = new Date(ride.created_at);
+    const now = new Date();
+    const curYear = now.getFullYear();
+    const curMonth = now.getMonth();
+
+    if (currentReportPeriod === "CURRENT_MONTH") {
+      return rideDate.getFullYear() === curYear && rideDate.getMonth() === curMonth;
+    }
+
+    if (currentReportPeriod === "LAST_MONTH") {
+      const lastMonthDate = new Date(curYear, curMonth - 1, 1);
+      return (
+        rideDate.getFullYear() === lastMonthDate.getFullYear() &&
+        rideDate.getMonth() === lastMonthDate.getMonth()
+      );
+    }
+
+    if (currentReportPeriod === "Q1") {
+      return (
+        rideDate.getFullYear() === curYear &&
+        rideDate.getMonth() === curMonth &&
+        rideDate.getDate() >= 1 &&
+        rideDate.getDate() <= 15
+      );
+    }
+
+    if (currentReportPeriod === "Q2") {
+      return (
+        rideDate.getFullYear() === curYear &&
+        rideDate.getMonth() === curMonth &&
+        rideDate.getDate() >= 16
+      );
+    }
+
+    if (currentReportPeriod === "CUSTOM") {
+      if (!customReportStart && !customReportEnd) return true;
+      const start = customReportStart ? new Date(customReportStart + "T00:00:00") : new Date(0);
+      const end = customReportEnd ? new Date(customReportEnd + "T23:59:59") : new Date(8640000000000000);
+      return rideDate >= start && rideDate <= end;
+    }
+
+    return true;
+  });
+}
+
+function getReportPeriodLabel() {
+  const now = new Date();
+  const monthNames = [
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+  ];
+  const curMonth = monthNames[now.getMonth()];
+  const curYear = now.getFullYear();
+
+  switch (currentReportPeriod) {
+    case "Q1":
+      return `1ª Quinzena de ${curMonth}/${curYear} (01 a 15)`;
+    case "Q2":
+      return `2ª Quinzena de ${curMonth}/${curYear} (16 ao fim)`;
+    case "CURRENT_MONTH":
+      return `Mês de ${curMonth}/${curYear}`;
+    case "LAST_MONTH": {
+      const lastM = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+      const lastY = now.getMonth() === 0 ? curYear - 1 : curYear;
+      return `Mês de ${monthNames[lastM]}/${lastY}`;
+    }
+    case "CUSTOM":
+      return customReportStart && customReportEnd
+        ? `De ${customReportStart.split("-").reverse().join("/")} até ${customReportEnd.split("-").reverse().join("/")}`
+        : "Período Personalizado";
+    default:
+      return "Histórico Geral (Todas as Viagens)";
+  }
+}
+
+function renderReportsView() {
+  const filtered = getFilteredReportRides();
+  const periodLabel = getReportPeriodLabel();
+
+  // Atualiza label do período
+  const periodBadge = document.getElementById("report-period-badge");
+  if (periodBadge) periodBadge.textContent = periodLabel;
+
+  // Cálculos Consolidados
+  const completed = filtered.filter((r) =>
+    ["COMPLETED", "FINISHED", "FINALIZADA", "CONCLUIDA", "PAID"].includes(r.status)
+  );
+  const totalFare = completed.reduce((acc, r) => acc + r.fare_amount, 0);
+  const totalKm = filtered.reduce((acc, r) => acc + (r.distance_km || 0), 0);
+  const avgFare = completed.length > 0 ? totalFare / completed.length : 0;
+
+  // Atualiza os KPIs no DOM
+  const kpiFare = document.getElementById("kpi-report-fare");
+  const kpiFareNote = document.getElementById("kpi-report-fare-note");
+  const kpiRides = document.getElementById("kpi-report-rides");
+  const kpiRidesNote = document.getElementById("kpi-report-rides-note");
+  const kpiKm = document.getElementById("kpi-report-km");
+  const kpiAvg = document.getElementById("kpi-report-avg");
+
+  if (kpiFare) kpiFare.textContent = "R$ " + totalFare.toFixed(2).replace(".", ",");
+  if (kpiFareNote) kpiFareNote.textContent = `${completed.length} corridas faturadas`;
+  if (kpiRides) kpiRides.textContent = String(filtered.length);
+  if (kpiRidesNote) kpiRidesNote.textContent = `${filtered.length - completed.length} cancelamentos/pendentes`;
+  if (kpiKm) kpiKm.innerHTML = `${totalKm.toFixed(1)} <small style="font-size:14px;">km</small>`;
+  if (kpiAvg) kpiAvg.textContent = "R$ " + avgFare.toFixed(2).replace(".", ",");
+
+  // Renderiza Tabela
+  const tbody = document.getElementById("reports-table-body");
+  if (!tbody) return;
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="empty-state">Nenhuma corrida encontrada para os filtros selecionados.</td></tr>';
+    return;
+  }
+
+  let html = "";
+  filtered.forEach((r, idx) => {
+    const isComp = ["COMPLETED", "FINISHED", "FINALIZADA", "CONCLUIDA", "PAID"].includes(r.status);
+    const isCanc = ["CANCELLED", "CANCELED", "CANCELADA", "REJECTED"].includes(r.status);
+    const statusClass = isComp ? "approved" : isCanc ? "rejected" : "pending";
+    const statusText = isComp ? "FINALIZADA" : isCanc ? "CANCELADA" : "EM ANDAMENTO";
+
+    const dateStr = new Date(r.created_at).toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+
+    html += `
+      <tr>
+        <td style="text-align:center; font-family:'DM Mono', monospace; font-weight:bold; color:var(--ink-soft);">${idx + 1}</td>
+        <td style="white-space:nowrap; font-size:11.5px; font-weight:600;">${dateStr}</td>
+        <td>
+          <strong style="font-size:12px; display:block;">${escapeHtml(r.passenger_name)}</strong>
+          <small style="color:var(--ink-soft); font-size:10px;">${escapeHtml(r.company)}</small>
+        </td>
+        <td style="font-size:11.5px; max-width:180px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;" title="${escapeHtml(r.pickup_address)}">
+          <span style="color:var(--green); font-weight:bold;">●</span> ${escapeHtml(r.pickup_address)}
+        </td>
+        <td style="font-size:11.5px; max-width:180px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;" title="${escapeHtml(r.dropoff_address)}">
+          <span style="color:var(--amber); font-weight:bold;">●</span> ${escapeHtml(r.dropoff_address)}
+        </td>
+        <td style="font-size:11.5px;">${escapeHtml(r.driver_name)}</td>
+        <td style="text-align:center; font-family:'DM Mono', monospace; font-size:11px;">${r.distance_km ? `${r.distance_km.toFixed(1)} km` : "-"}</td>
+        <td style="text-align:center;">
+          <span class="status-badge ${statusClass}">${statusText}</span>
+        </td>
+        <td style="text-align:right; font-family:'DM Mono', monospace; font-weight:700; font-size:12px; color:var(--ink);">
+          R$ ${r.fare_amount.toFixed(2).replace(".", ",")}
+        </td>
+      </tr>
+    `;
+  });
+
+  tbody.innerHTML = html;
+}
+
+function exportReportsPDF() {
+  const filtered = getFilteredReportRides();
+  if (filtered.length === 0) {
+    alert("Não há viagens no filtro selecionado para gerar o relatório.");
+    return;
+  }
+
+  const periodLabel = getReportPeriodLabel();
+  const emissionDate = new Date().toLocaleString("pt-BR");
+
+  const completed = filtered.filter((r) =>
+    ["COMPLETED", "FINISHED", "FINALIZADA", "CONCLUIDA", "PAID"].includes(r.status)
+  );
+  const totalFare = completed.reduce((acc, r) => acc + r.fare_amount, 0);
+  const totalKm = filtered.reduce((acc, r) => acc + (r.distance_km || 0), 0);
+
+  const selectedPassElem = document.getElementById("report-filter-passenger");
+  const passengerFilterLabel = selectedPassElem && selectedPassElem.options[selectedPassElem.selectedIndex]
+    ? selectedPassElem.options[selectedPassElem.selectedIndex].text
+    : "Todos os Passageiros";
+
+  const rowsHtml = filtered.map((r, idx) => {
+    const isComp = ["COMPLETED", "FINISHED", "FINALIZADA", "CONCLUIDA", "PAID"].includes(r.status);
+    const isCanc = ["CANCELLED", "CANCELED", "CANCELADA", "REJECTED"].includes(r.status);
+    const statusColor = isComp ? "#268269" : isCanc ? "#c4554b" : "#e5a83b";
+    const statusLabel = isComp ? "Finalizada" : isCanc ? "Cancelada" : "Em Rota";
+
+    const dateStr = new Date(r.created_at).toLocaleString("pt-BR");
+
+    return `
+      <tr style="border-bottom: 1px solid #e2e8f0; font-size: 11px;">
+        <td style="padding: 7px 6px; text-align: center; font-weight: bold; color: #64748b;">${idx + 1}</td>
+        <td style="padding: 7px 6px; white-space: nowrap; color: #334155;">${dateStr}</td>
+        <td style="padding: 7px 6px;"><strong>${escapeHtml(r.passenger_name)}</strong><br><small style="color:#64748b;">${escapeHtml(r.company)}</small></td>
+        <td style="padding: 7px 6px; max-width: 170px;">${escapeHtml(r.pickup_address)}</td>
+        <td style="padding: 7px 6px; max-width: 170px;">${escapeHtml(r.dropoff_address)}</td>
+        <td style="padding: 7px 6px;">${escapeHtml(r.driver_name)}</td>
+        <td style="padding: 7px 6px; text-align: center;">${r.distance_km ? `${r.distance_km.toFixed(1)} km` : "-"}</td>
+        <td style="padding: 7px 6px; text-align: center;">
+          <span style="display: inline-block; padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 10px; background: ${statusColor}18; color: ${statusColor};">
+            ${statusLabel}
+          </span>
+        </td>
+        <td style="padding: 7px 6px; text-align: right; font-weight: bold; color: #0f172a;">R$ ${r.fare_amount.toFixed(2).replace(".", ",")}</td>
+      </tr>
+    `;
+  }).join("");
+
+  const printWindow = window.open("", "_blank", "width=1000,height=800");
+  if (!printWindow) {
+    alert("Por favor, permita pop-ups no navegador para gerar o PDF.");
+    return;
+  }
+
+  printWindow.document.write(`
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8">
+      <title>Relatório de Faturamento - SR Logística</title>
+      <style>
+        @page { size: A4 landscape; margin: 10mm; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; margin: 0; padding: 15px; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 10px; margin-bottom: 15px; }
+        .title { font-size: 20px; font-weight: 900; color: #0f172a; }
+        .subtitle { font-size: 11px; color: #64748b; font-weight: 600; margin-top: 2px; }
+        .doc-badge { background: #f8fafc; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 8px; text-align: right; }
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+        .box { background: #f8fafc; border: 1px solid #cbd5e1; padding: 10px; text-align: center; border-radius: 8px; }
+        .box .val { font-size: 16px; font-weight: 900; color: #0f172a; margin-top: 2px; }
+        .box .lbl { font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase; }
+        .box.highlight { background: #0f172a; color: #fff; }
+        .box.highlight .val { color: #38bdf8; }
+        .box.highlight .lbl { color: #94a3b8; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #f1f5f9; text-align: left; padding: 8px 6px; font-size: 10.5px; text-transform: uppercase; border-bottom: 2px solid #cbd5e1; }
+        .signatures { margin-top: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 50px; text-align: center; font-size: 11px; color: #475569; }
+        .sig-line { border-top: 1px solid #94a3b8; padding-top: 6px; font-weight: 600; }
+        .footer { margin-top: 25px; text-align: center; font-size: 10px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 8px; }
+        @media print { body { padding: 0; } }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <div>
+          <div class="title">SR LOGÍSTICA & TRANSPORTE CORPORATIVO</div>
+          <div class="subtitle">Extrato Oficial de Corridas e Fechamento de Faturamento</div>
+        </div>
+        <div class="doc-badge">
+          <div style="font-size: 10px; font-weight: 700; color: #64748b; text-transform: uppercase;">Período do Fechamento</div>
+          <div style="font-size: 12px; font-weight: 800; color: #0f172a;">${periodLabel}</div>
+          <div style="font-size: 9.5px; color: #94a3b8; margin-top: 2px;">Emissão: ${emissionDate}</div>
+        </div>
+      </div>
+
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:8px 14px; margin-bottom:14px; font-size:11.5px;">
+        <strong>Filtro Aplicado:</strong> ${escapeHtml(passengerFilterLabel)}
+      </div>
+
+      <div class="grid">
+        <div class="box">
+          <div class="lbl">Viagens no Período</div>
+          <div class="val">${filtered.length}</div>
+        </div>
+        <div class="box">
+          <div class="lbl">Corridas Concluídas</div>
+          <div class="val" style="color:#268269;">${completed.length}</div>
+        </div>
+        <div class="box">
+          <div class="lbl">Quilometragem Total</div>
+          <div class="val">${totalKm.toFixed(1)} km</div>
+        </div>
+        <div class="box highlight">
+          <div class="lbl">Faturamento Bruto Total</div>
+          <div class="val">R$ ${totalFare.toFixed(2).replace(".", ",")}</div>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="width:25px; text-align:center;">#</th>
+            <th>Data / Hora</th>
+            <th>Passageiro / Empresa</th>
+            <th>Origem</th>
+            <th>Destino</th>
+            <th>Motorista</th>
+            <th style="text-align:center;">Km</th>
+            <th style="text-align:center;">Status</th>
+            <th style="text-align:right;">Valor</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rowsHtml}
+        </tbody>
+      </table>
+
+      <div class="signatures">
+        <div><div class="sig-line">SR Logística & Transporte - Gestão Operacional</div></div>
+        <div><div class="sig-line">Aprovação da Empresa Contratante / Financeiro</div></div>
+      </div>
+
+      <div class="footer">
+        SR Logística e Transporte Ltda • CNPJ 52.967.828/0001-17 • Manaus - AM • Plataforma de Gestão Corporativa
+      </div>
+
+      <script>
+        window.onload = function() {
+          setTimeout(function() { window.print(); }, 350);
+        }
+      </script>
+    </body>
+    </html>
+  `);
+  printWindow.document.close();
+}
+
+function exportReportsCSV() {
+  const filtered = getFilteredReportRides();
+  if (filtered.length === 0) {
+    alert("Não há dados no período selecionado para exportar.");
+    return;
+  }
+
+  const headers = [
+    "ID",
+    "Data_Hora",
+    "Passageiro",
+    "Empresa",
+    "Origem",
+    "Destino",
+    "Motorista",
+    "KM",
+    "Status",
+    "Forma_Pagamento",
+    "Valor_R$",
+  ];
+
+  const rows = filtered.map((r) => [
+    `"${r.id}"`,
+    `"${new Date(r.created_at).toLocaleString("pt-BR")}"`,
+    `"${(r.passenger_name || "").replace(/"/g, '""')}"`,
+    `"${(r.company || "").replace(/"/g, '""')}"`,
+    `"${(r.pickup_address || "").replace(/"/g, '""')}"`,
+    `"${(r.dropoff_address || "").replace(/"/g, '""')}"`,
+    `"${(r.driver_name || "").replace(/"/g, '""')}"`,
+    `"${r.distance_km || 0}"`,
+    `"${r.status}"`,
+    `"${r.payment_method || "PIX"}"`,
+    `"${r.fare_amount.toFixed(2).replace(".", ",")}"`,
+  ]);
+
+  const csvContent = "\uFEFF" + [headers.join(";"), ...rows.map((e) => e.join(";"))].join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `relatorio_faturamento_sr_${currentReportPeriod.toLowerCase()}_${Date.now()}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+

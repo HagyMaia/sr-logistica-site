@@ -102,7 +102,11 @@
                         <span>Motoristas</span>
                     </a>
 
-                    <span class="nav-caption">Gestão</span>
+                    <span class="nav-caption">Gestão & Financeiro</span>
+                    <a href="#reports" class="side-link" data-view="reports">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                        <span>Relatórios de Corridas</span>
+                    </a>
                     <a href="#posts" class="side-link" data-view="posts">
                         <i class="fas fa-bullhorn"></i>
                         <span>Comunicados</span>
@@ -411,7 +415,134 @@
                     </section>
                 </div>
 
-                <!-- 7. Segurança -->
+                <!-- 7. Relatórios de Corridas e Faturamento Quinzenal / Mensal -->
+                <div class="view" id="view-reports">
+                    <div class="page-heading">
+                        <div>
+                            <span class="eyebrow">Gestão Financeira & Operacional</span>
+                            <h2>Relatórios de Corridas & Faturamento</h2>
+                            <p>Fechamento quinzenal e mensal por passageiro, empresa convênio e motorista.</p>
+                        </div>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                            <button type="button" class="btn btn-secondary" id="btn-export-csv-report">
+                                <i class="fas fa-file-excel" style="color:var(--green);"></i> Baixar Planilha (.CSV)
+                            </button>
+                            <button type="button" class="btn btn-primary" id="btn-export-pdf-report" style="width:auto;">
+                                <i class="fas fa-print"></i> Gerar Relatório PDF / Imprimir
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Painel de Filtros -->
+                    <section class="panel" style="margin-bottom:18px; padding:20px 24px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; border-bottom:1px solid var(--line); padding-bottom:10px;">
+                            <strong style="font-size:12px; text-transform:uppercase; font-family:'DM Mono', monospace; color:var(--ink);">
+                                <i class="fas fa-filter" style="color:var(--amber); margin-right:6px;"></i> Filtros do Fechamento
+                            </strong>
+                            <button type="button" id="refresh-reports" class="text-link" style="font-size:11px;">
+                                <i class="fas fa-rotate"></i> Atualizar Corridas
+                            </button>
+                        </div>
+
+                        <!-- Botões de Período Rápido -->
+                        <div class="tabs" style="margin-bottom:16px; gap:12px; border-bottom:0;" id="report-period-tabs">
+                            <button type="button" class="tab active" data-period="CURRENT_MONTH">Este Mês</button>
+                            <button type="button" class="tab" data-period="Q1">1ª Quinzena (1-15)</button>
+                            <button type="button" class="tab" data-period="Q2">2ª Quinzena (16-Fim)</button>
+                            <button type="button" class="tab" data-period="LAST_MONTH">Mês Anterior</button>
+                            <button type="button" class="tab" data-period="ALL">Todas as Viagens</button>
+                            <button type="button" class="tab" data-period="CUSTOM">Personalizado</button>
+                        </div>
+
+                        <!-- Seletores de Passageiro, Empresa, Status e Datas -->
+                        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px;">
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label for="report-filter-passenger" style="font-size:11px;">Filtrar por Passageiro / Empresa</label>
+                                <select id="report-filter-passenger" style="padding:8px 12px; font-size:12px;">
+                                    <option value="ALL">Todos os Passageiros / Empresas</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label for="report-filter-status" style="font-size:11px;">Status da Corrida</label>
+                                <select id="report-filter-status" style="padding:8px 12px; font-size:12px;">
+                                    <option value="ALL">Todas (Concluídas + Canceladas)</option>
+                                    <option value="COMPLETED" selected>Apenas Finalizadas (Concluídas)</option>
+                                    <option value="CANCELLED">Apenas Canceladas</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group hidden" id="custom-date-start-wrap" style="margin-bottom:0;">
+                                <label for="report-custom-start" style="font-size:11px;">Data Início</label>
+                                <input type="date" id="report-custom-start" style="padding:7px 10px; font-size:12px;">
+                            </div>
+
+                            <div class="form-group hidden" id="custom-date-end-wrap" style="margin-bottom:0;">
+                                <label for="report-custom-end" style="font-size:11px;">Data Fim</label>
+                                <input type="date" id="report-custom-end" style="padding:7px 10px; font-size:12px;">
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- 4 Cards de Indicadores Financeiros (KPIs) -->
+                    <div class="metric-grid-4">
+                        <article class="metric-card">
+                            <span class="metric-label">Faturamento Total Bruto</span>
+                            <strong id="kpi-report-fare" style="color:var(--green);">R$ 0,00</strong>
+                            <span class="metric-note positive" id="kpi-report-fare-note">0 corridas faturadas</span>
+                        </article>
+
+                        <article class="metric-card">
+                            <span class="metric-label">Total de Viagens</span>
+                            <strong id="kpi-report-rides">0</strong>
+                            <span class="metric-note neutral" id="kpi-report-rides-note">no período selecionado</span>
+                        </article>
+
+                        <article class="metric-card">
+                            <span class="metric-label">Quilometragem Percorrida</span>
+                            <strong id="kpi-report-km">0.0 <small style="font-size:14px;">km</small></strong>
+                            <span class="metric-note neutral">Distância acumulada</span>
+                        </article>
+
+                        <article class="metric-card">
+                            <span class="metric-label">Ticket Médio por Viagem</span>
+                            <strong id="kpi-report-avg">R$ 0,00</strong>
+                            <span class="metric-note neutral">Média de valor por corrida</span>
+                        </article>
+                    </div>
+
+                    <!-- Tabela Detalhada de Corridas -->
+                    <div class="approval-table-wrap">
+                        <div style="padding:14px 19px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; align-items:center;">
+                            <strong style="font-size:12px; font-family:'DM Mono', monospace; color:var(--ink);" id="report-table-caption">
+                                Detalhamento de Corridas
+                            </strong>
+                            <span id="report-period-badge" style="font-size:11px; font-weight:700; color:var(--green);"></span>
+                        </div>
+                        <table class="approval-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:35px; text-align:center;">#</th>
+                                    <th>Data / Hora</th>
+                                    <th>Passageiro / Empresa</th>
+                                    <th>Origem</th>
+                                    <th>Destino</th>
+                                    <th>Motorista</th>
+                                    <th style="text-align:center;">Km</th>
+                                    <th style="text-align:center;">Status</th>
+                                    <th style="text-align:right;">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reports-table-body">
+                                <tr>
+                                    <td colspan="9" class="loading-state">Carregando relatório de corridas...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 8. Segurança -->
                 <div class="view" id="view-security">
                     <div class="page-heading">
                         <div>
