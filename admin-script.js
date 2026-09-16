@@ -36,8 +36,13 @@ let passengerBaseSearchQuery = "";
 
 let motoristasCache = [];
 let passageirosCache = [];
+let empresasCache = [];
 let postsCache = [];
 let corridasCache = [];
+
+// Filtros de Empresas Conveniadas
+let companySearchQuery = "";
+let companyStatusFilter = "all";
 
 // Estado do Relatório de Corridas e Faturamento
 let currentReportPeriod = "CURRENT_MONTH";
@@ -66,6 +71,8 @@ document.addEventListener("DOMContentLoaded", () => {
   setupPostsForm();
   setupPassengerModal();
   setupPassengerFilters();
+  setupCompanyModal();
+  setupCompanyFilters();
   setupReportsView();
   checkSession();
 });
@@ -319,6 +326,11 @@ function setupNavigation() {
     btnRefreshPassList.addEventListener("click", () => loadPassageiros());
   }
 
+  const btnRefreshCompanies = document.getElementById("refresh-companies-list");
+  if (btnRefreshCompanies) {
+    btnRefreshCompanies.addEventListener("click", () => loadEmpresas());
+  }
+
   // Atalho do menu mobile
   const mobileMenuBtn = document.getElementById("mobile-menu");
   const sidebar = document.querySelector(".sidebar");
@@ -354,6 +366,7 @@ function switchView(viewId) {
       approvals: "Aprovações de Motoristas",
       passengers: "Passageiros Homologados",
       drivers: "Motoristas Cadastrados",
+      companies: "Empresas Conveniadas & Corporativo",
       reports: "Relatórios de Corridas & Faturamento",
       posts: "Comunicados",
       security: "Segurança",
@@ -363,6 +376,8 @@ function switchView(viewId) {
 
   if (viewId === "reports") {
     loadCorridasReports();
+  } else if (viewId === "companies") {
+    loadEmpresas();
   }
 
   // Fecha o menu mobile ao navegar
@@ -377,6 +392,7 @@ async function loadAllData() {
   await Promise.all([
     loadMotoristas(),
     loadPassageiros(),
+    loadEmpresas(),
     loadPosts(),
     loadCorridasReports(),
   ]);
@@ -640,13 +656,9 @@ function updateCompanyFilterOptions() {
   if (!select) return;
 
   const currentSelected = select.value;
-  const companies = Array.from(
-    new Set(
-      passageirosCache
-        .map((p) => p.empresa)
-        .filter((emp) => emp && emp.trim() !== ""),
-    ),
-  ).sort();
+  const fromPass = passageirosCache.map((p) => p.empresa).filter((emp) => emp && emp.trim() !== "");
+  const fromComp = empresasCache.map((c) => c.trade_name || c.name).filter((emp) => emp && emp.trim() !== "");
+  const companies = Array.from(new Set([...fromPass, ...fromComp])).sort();
 
   let html = '<option value="">Todas as empresas</option>';
   companies.forEach((emp) => {
@@ -1116,7 +1128,8 @@ function renderApprovals() {
   html += '<th style="padding:10px;">Como deseja ser chamado / Nome</th>';
   html += '<th style="padding:10px;">Contato</th>';
   html += '<th style="padding:10px;">Veículo & Placa</th>';
-  html += '<th style="padding:10px;">Tipo</th>';
+  html += '<th style="padding:10px;">Tipo Entrada</th>';
+  html += '<th style="padding:10px;">Categoria Motorista</th>';
   html += '<th style="padding:10px;">Status</th>';
   html += '<th style="padding:10px; text-align:right;">Ações</th>';
   html += "</tr></thead><tbody>";
@@ -1128,6 +1141,7 @@ function renderApprovals() {
     const isPending =
       m.status === "Pendente" || m.vehicle_status === "Pendente";
     const isApproved = m.status === "Aprovado";
+    const isEmpresa = m.categoria_tipo === "empresa" || m.categoria === "Empresa";
 
     html +=
       '<tr style="border-bottom:1px solid var(--line); font-size:13px;">';
@@ -1161,6 +1175,13 @@ function renderApprovals() {
         ? '<span style="color:#be7b20; font-weight:bold;">Troca de Carro</span>'
         : '<span style="color:var(--green); font-weight: bold;">Novo Cadastro</span>') +
       "</td>";
+    html +=
+      '  <td style="padding:10px;">' +
+      '    <select onchange="changeDriverCategory(\'' + m.id + '\', this.value)" style="background:var(--paper); border:1px solid var(--line); border-radius:6px; font-size:11px; padding:4px 6px; font-weight:bold; color:var(--ink); cursor:pointer;">' +
+      '      <option value="particular" ' + (!isEmpresa ? 'selected' : '') + '>👤 Motorista Particular</option>' +
+      '      <option value="empresa" ' + (isEmpresa ? 'selected' : '') + '>🏢 Empresa / Frota</option>' +
+      '    </select>' +
+      '  </td>';
     html +=
       '  <td style="padding:10px;"><span class="status-badge ' +
       (isPending ? "pending" : isApproved ? "approved" : "rejected") +
@@ -1227,6 +1248,7 @@ function renderDrivers() {
   for (let i = 0; i < ativos.length; i++) {
     const m = ativos[i];
     const initial = (m.nome_social || m.nome || "M").charAt(0).toUpperCase();
+    const isEmpresa = m.categoria_tipo === "empresa" || m.categoria === "Empresa";
 
     html += `
       <div class="driver-card" style="background:var(--white); border:1px solid var(--line); border-radius:var(--radius); padding:18px;">
@@ -1246,6 +1268,16 @@ function renderDrivers() {
           <div><i class="fas fa-phone" style="width:18px; color:var(--green);"></i> ${escapeHtml(m.telefone || m.phone || "Sem telefone")}</div>
           <div><i class="fas fa-location-dot" style="width:18px; color:var(--green);"></i> Manaus - AM</div>
         </div>
+
+        <!-- Seletor de Categoria do Motorista -->
+        <div style="margin-top:10px; padding:8px 10px; background:var(--paper); border-radius:8px; border:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; gap:8px;">
+          <span style="font-size:11px; font-weight:bold; color:var(--ink-soft);"><i class="fas fa-tags" style="color:var(--amber);"></i> Categoria:</span>
+          <select onchange="changeDriverCategory('${m.id}', this.value)" style="background:var(--white); border:1px solid var(--line); border-radius:6px; font-size:11px; padding:3px 6px; font-weight:bold; color:var(--ink); cursor:pointer;">
+            <option value="particular" ${!isEmpresa ? 'selected' : ''}>👤 Motorista Particular</option>
+            <option value="empresa" ${isEmpresa ? 'selected' : ''}>🏢 Frota Corporativa / Empresa</option>
+          </select>
+        </div>
+
         <div style="border-top:1px solid var(--line); margin-top:14px; padding-top:10px; display:flex; justify-content:space-between; align-items:center;">
           <small style="color:#788b90; font-size:10px;">Status: <strong style="color:var(--green);">Ativo</strong></small>
           <div style="display:flex; gap:6px;">
@@ -1265,6 +1297,38 @@ function renderDrivers() {
 }
 
 // --- FUNÇÕES DE APROVAÇÃO E GESTÃO DE MOTORISTAS ---
+window.changeDriverCategory = async function (driverId, newCategory) {
+  try {
+    const isEmpresa = newCategory === "empresa" || newCategory === "Empresa";
+    const categoryLabel = isEmpresa ? "Frota Corporativa / Empresa" : "Motorista Particular";
+
+    if (supabaseClient) {
+      const { error } = await supabaseClient
+        .from("motoristas")
+        .update({
+          categoria_tipo: newCategory,
+          categoria: isEmpresa ? "Empresa" : "Particular"
+        })
+        .eq("id", driverId);
+
+      if (error && error.code !== "PGRST205") throw error;
+    }
+
+    const item = motoristasCache.find((m) => String(m.id) === String(driverId));
+    if (item) {
+      item.categoria_tipo = newCategory;
+      item.categoria = isEmpresa ? "Empresa" : "Particular";
+    }
+
+    showNotification(`Categoria do motorista atualizada para: ${categoryLabel}`, "success");
+    renderOverviewApprovals();
+    renderApprovals();
+    renderDrivers();
+  } catch (err) {
+    showNotification("Erro ao alterar categoria do motorista: " + err.message, "error");
+  }
+};
+
 window.approveDriver = async function (driverId) {
   if (!confirm("Deseja aprovar / reativar este motorista para a operação?")) return;
   try {
@@ -1338,6 +1402,357 @@ window.deleteDriver = async function (driverId) {
     renderDrivers();
   } catch (err) {
     showNotification("Erro ao excluir motorista: " + err.message, "error");
+  }
+};
+
+// --- GESTÃO DE EMPRESAS CONVENIADAS ---
+async function loadEmpresas() {
+  const defaultCompanies = [
+    {
+      id: "honda-01",
+      name: "Moto Honda da Amazônia Ltda",
+      trade_name: "Moto Honda",
+      cnpj: "04.337.168/0001-48",
+      contact_person: "Gerência de Transporte / RH",
+      phone: "(92) 2123-4000",
+      email: "transporte@honda.com.br",
+      billing_cycle: "quinzenal",
+      active: true,
+      address: "Av. Torquato Tapajós, Flores, Manaus - AM"
+    },
+    {
+      id: "samsung-02",
+      name: "Samsung Eletrônica da Amazônia Ltda",
+      trade_name: "Samsung PIM",
+      cnpj: "00.280.273/0001-37",
+      contact_person: "Setor de Logística Pessoal",
+      phone: "(92) 4009-1000",
+      email: "logistica@samsung.com.br",
+      billing_cycle: "quinzenal",
+      active: true,
+      address: "Av. dos Oitis, Distrito Industrial II, Manaus - AM"
+    },
+    {
+      id: "yamaha-03",
+      name: "Yamaha Motor da Amazônia Ltda",
+      trade_name: "Yamaha Motor",
+      cnpj: "04.790.877/0001-38",
+      contact_person: "Supervisão de Operações",
+      phone: "(92) 2125-9000",
+      email: "operacoes@yamaha-motor.com.br",
+      billing_cycle: "mensal",
+      active: true,
+      address: "Estrada dos Franceses, Alvorada, Manaus - AM"
+    }
+  ];
+
+  if (!supabaseClient) {
+    const local = localStorage.getItem("sr_empresas_cache");
+    empresasCache = local ? JSON.parse(local) : defaultCompanies;
+    renderEmpresas();
+    return;
+  }
+
+  try {
+    const { data, error } = await supabaseClient
+      .from("empresas_conveniadas")
+      .select("*")
+      .order("name", { ascending: true });
+
+    if (error) {
+      console.warn("Aviso ao carregar empresas_conveniadas do Supabase:", error.message);
+      const local = localStorage.getItem("sr_empresas_cache");
+      empresasCache = local ? JSON.parse(local) : defaultCompanies;
+    } else {
+      empresasCache = (data && data.length > 0) ? data : defaultCompanies;
+      localStorage.setItem("sr_empresas_cache", JSON.stringify(empresasCache));
+    }
+  } catch (err) {
+    console.error("Erro ao consultar empresas conveniadas:", err);
+    const local = localStorage.getItem("sr_empresas_cache");
+    empresasCache = local ? JSON.parse(local) : defaultCompanies;
+  }
+
+  const navCount = document.getElementById("nav-companies-count");
+  if (navCount) {
+    navCount.textContent = String(empresasCache.filter(c => c.active !== false).length);
+  }
+
+  updateCompanyFilterOptions();
+  renderEmpresas();
+}
+
+function setupCompanyFilters() {
+  const searchInput = document.getElementById("search-companies-input");
+  if (searchInput) {
+    searchInput.addEventListener("input", (e) => {
+      companySearchQuery = e.target.value.toLowerCase().trim();
+      renderEmpresas();
+    });
+  }
+
+  const statusSelect = document.getElementById("filter-company-status");
+  if (statusSelect) {
+    statusSelect.addEventListener("change", (e) => {
+      companyStatusFilter = e.target.value;
+      renderEmpresas();
+    });
+  }
+}
+
+function renderEmpresas() {
+  const container = document.getElementById("companies-container");
+  if (!container) return;
+
+  let list = empresasCache.slice();
+
+  // Filtro de status
+  if (companyStatusFilter === "active") {
+    list = list.filter((c) => c.active !== false);
+  } else if (companyStatusFilter === "inactive") {
+    list = list.filter((c) => c.active === false);
+  }
+
+  // Filtro de busca
+  if (companySearchQuery) {
+    list = list.filter((c) => {
+      const full = [
+        c.name,
+        c.trade_name,
+        c.cnpj,
+        c.contact_person,
+        c.phone,
+        c.email,
+        c.address
+      ].filter(Boolean).join(" ").toLowerCase();
+      return full.includes(companySearchQuery);
+    });
+  }
+
+  if (list.length === 0) {
+    container.innerHTML =
+      '<p class="loading-state">Nenhuma empresa conveniada encontrada com os filtros selecionados.</p>';
+    return;
+  }
+
+  let html =
+    '<table class="approval-table" style="width:100%; text-align:left; border-collapse:collapse;">';
+  html +=
+    '<thead><tr style="border-bottom:1px solid rgba(255,255,255,0.15); font-size:12px; color:#94a3b8;">';
+  html += '<th style="padding:10px;">Empresa / Razão Social</th>';
+  html += '<th style="padding:10px;">CNPJ</th>';
+  html += '<th style="padding:10px;">Contato & Telefone</th>';
+  html += '<th style="padding:10px;">E-mail Financeiro</th>';
+  html += '<th style="padding:10px;">Ciclo Fechamento</th>';
+  html += '<th style="padding:10px;">Status</th>';
+  html += '<th style="padding:10px; text-align:right;">Ações</th>';
+  html += "</tr></thead><tbody>";
+
+  for (let i = 0; i < list.length; i++) {
+    const comp = list[i];
+    const isActive = comp.active !== false;
+
+    html += '<tr style="border-bottom:1px solid var(--line); font-size:13px;">';
+    html += '  <td style="padding:10px;">';
+    html += '    <strong>' + escapeHtml(comp.name || comp.trade_name || "Sem razão social") + '</strong>';
+    if (comp.trade_name && comp.trade_name !== comp.name) {
+      html += '    <br><small style="color:var(--amber); font-weight:600;"><i class="fas fa-building"></i> ' + escapeHtml(comp.trade_name) + '</small>';
+    }
+    if (comp.address) {
+      html += '    <br><small style="color:var(--ink-soft);"><i class="fas fa-location-dot"></i> ' + escapeHtml(comp.address) + '</small>';
+    }
+    html += '  </td>';
+    html += '  <td style="padding:10px;"><span style="background:var(--paper); padding: 2px 6px; border-radius: 4px; font-weight: bold; border:1px solid var(--line); font-family:monospace;">' + escapeHtml(comp.cnpj || "—") + '</span></td>';
+    html += '  <td style="padding:10px;">' + escapeHtml(comp.contact_person || "—") + '<br><small style="color:var(--green); font-weight:600;"><i class="fas fa-phone"></i> ' + escapeHtml(comp.phone || "—") + '</small></td>';
+    html += '  <td style="padding:10px;"><small style="color:var(--ink-soft);">' + escapeHtml(comp.email || "—") + '</small></td>';
+    html += '  <td style="padding:10px;"><span style="text-transform:capitalize; font-size:11px; font-weight:bold; color:var(--ink);">' + (comp.billing_cycle === 'quinzenal' ? '🗓️ Quinzenal' : comp.billing_cycle === 'semanal' ? '🗓️ Semanal' : '🗓️ Mensal') + '</span></td>';
+    html += '  <td style="padding:10px;"><span class="status-badge ' + (isActive ? 'approved' : 'rejected') + '">' + (isActive ? 'Ativo' : 'Inativo') + '</span></td>';
+    html += '  <td style="padding:10px; text-align:right; white-space:nowrap;">';
+    html += '    <button class="btn btn-secondary" style="padding:4px 8px; font-size:11px; min-height:28px; margin-right:4px;" onclick="editCompany(\'' + comp.id + '\')" title="Editar empresa"><i class="fas fa-pen"></i> Editar</button>';
+    html += '    <button class="btn btn-secondary" style="padding:4px 8px; font-size:11px; min-height:28px; margin-right:4px;" onclick="toggleCompanyStatus(\'' + comp.id + '\')" title="' + (isActive ? 'Desativar' : 'Ativar') + '">' + (isActive ? '<i class="fas fa-ban" style="color:#be7b20;"></i>' : '<i class="fas fa-check" style="color:var(--green);"></i>') + '</button>';
+    html += '    <button class="btn btn-secondary" style="padding:4px 8px; font-size:11px; min-height:28px;" onclick="deleteCompany(\'' + comp.id + '\')" title="Excluir empresa"><i class="fas fa-trash-can" style="color:var(--red);"></i></button>';
+    html += '  </td>';
+    html += '</tr>';
+  }
+
+  html += '</tbody></table>';
+  container.innerHTML = html;
+}
+
+function setupCompanyModal() {
+  const modal = document.getElementById("company-modal");
+  const btnOpen = document.getElementById("btn-open-company-modal");
+  const btnClose = document.getElementById("close-company-modal");
+  const btnCancel = document.getElementById("btn-cancel-company-modal");
+  const form = document.getElementById("company-form");
+  const feedback = document.getElementById("company-feedback");
+
+  const openModal = () => {
+    if (modal) modal.classList.remove("hidden");
+    if (feedback) {
+      feedback.textContent = "";
+      feedback.className = "feedback-msg";
+    }
+  };
+
+  const closeModal = () => {
+    if (modal) modal.classList.add("hidden");
+    if (form) form.reset();
+    const idInput = document.getElementById("company-id");
+    if (idInput) idInput.value = "";
+    const title = document.getElementById("company-modal-title");
+    if (title) title.textContent = "Cadastrar Empresa Conveniada";
+  };
+
+  if (btnOpen) btnOpen.addEventListener("click", () => {
+    closeModal();
+    openModal();
+  });
+  if (btnClose) btnClose.addEventListener("click", closeModal);
+  if (btnCancel) btnCancel.addEventListener("click", closeModal);
+
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const id = document.getElementById("company-id").value.trim();
+      const name = document.getElementById("company-name").value.trim();
+      const trade_name = document.getElementById("company-trade-name").value.trim() || name;
+      const cnpj = document.getElementById("company-cnpj").value.trim();
+      const contact_person = document.getElementById("company-contact").value.trim();
+      const phone = document.getElementById("company-phone").value.trim();
+      const email = document.getElementById("company-email").value.trim();
+      const billing_cycle = document.getElementById("company-billing-cycle").value;
+      const active = document.getElementById("company-status").value === "active";
+      const address = document.getElementById("company-address").value.trim();
+
+      if (!name || !cnpj || !phone) {
+        if (feedback) {
+          feedback.textContent = "Por favor, preencha Razão Social, CNPJ e Telefone.";
+          feedback.className = "feedback-msg error";
+        }
+        return;
+      }
+
+      const companyData = {
+        name,
+        trade_name,
+        cnpj,
+        contact_person,
+        phone,
+        email,
+        billing_cycle,
+        active,
+        address,
+        updated_at: new Date().toISOString()
+      };
+
+      try {
+        if (id) {
+          // Atualização
+          if (supabaseClient) {
+            const { error } = await supabaseClient
+              .from("empresas_conveniadas")
+              .update(companyData)
+              .eq("id", id);
+            if (error && error.code !== "PGRST205") throw error;
+          }
+
+          const idx = empresasCache.findIndex((c) => String(c.id) === String(id));
+          if (idx >= 0) {
+            empresasCache[idx] = { ...empresasCache[idx], ...companyData };
+          }
+          showNotification("Empresa parceira atualizada com sucesso!", "success");
+        } else {
+          // Inserção
+          const newId = "comp-" + Date.now();
+          const newCompany = { id: newId, created_at: new Date().toISOString(), ...companyData };
+
+          if (supabaseClient) {
+            const { error } = await supabaseClient
+              .from("empresas_conveniadas")
+              .insert([newCompany]);
+            if (error && error.code !== "PGRST205") throw error;
+          }
+
+          empresasCache.unshift(newCompany);
+          showNotification("Empresa parceira cadastrada com sucesso!", "success");
+        }
+
+        localStorage.setItem("sr_empresas_cache", JSON.stringify(empresasCache));
+        closeModal();
+        await loadEmpresas();
+      } catch (err) {
+        if (feedback) {
+          feedback.textContent = "Erro ao salvar empresa: " + err.message;
+          feedback.className = "feedback-msg error";
+        }
+      }
+    });
+  }
+}
+
+window.editCompany = function (companyId) {
+  const comp = empresasCache.find((c) => String(c.id) === String(companyId));
+  if (!comp) return;
+
+  const modal = document.getElementById("company-modal");
+  const title = document.getElementById("company-modal-title");
+  if (title) title.textContent = "Editar Empresa Conveniada";
+
+  document.getElementById("company-id").value = comp.id;
+  document.getElementById("company-name").value = comp.name || "";
+  document.getElementById("company-trade-name").value = comp.trade_name || "";
+  document.getElementById("company-cnpj").value = comp.cnpj || "";
+  document.getElementById("company-contact").value = comp.contact_person || "";
+  document.getElementById("company-phone").value = comp.phone || "";
+  document.getElementById("company-email").value = comp.email || "";
+  document.getElementById("company-billing-cycle").value = comp.billing_cycle || "quinzenal";
+  document.getElementById("company-status").value = comp.active !== false ? "active" : "inactive";
+  document.getElementById("company-address").value = comp.address || "";
+
+  if (modal) modal.classList.remove("hidden");
+};
+
+window.toggleCompanyStatus = async function (companyId) {
+  const comp = empresasCache.find((c) => String(c.id) === String(companyId));
+  if (!comp) return;
+
+  const newStatus = comp.active === false ? true : false;
+  try {
+    if (supabaseClient) {
+      const { error } = await supabaseClient
+        .from("empresas_conveniadas")
+        .update({ active: newStatus, updated_at: new Date().toISOString() })
+        .eq("id", companyId);
+      if (error && error.code !== "PGRST205") throw error;
+    }
+
+    comp.active = newStatus;
+    localStorage.setItem("sr_empresas_cache", JSON.stringify(empresasCache));
+    showNotification(`Status da empresa ${comp.name} alterado para: ${newStatus ? 'Ativo' : 'Inativo'}`, "info");
+    renderEmpresas();
+  } catch (err) {
+    showNotification("Erro ao alternar status da empresa: " + err.message, "error");
+  }
+};
+
+window.deleteCompany = async function (companyId) {
+  if (!confirm("Deseja realmente remover esta empresa parceira do cadastro?")) return;
+  try {
+    if (supabaseClient) {
+      const { error } = await supabaseClient
+        .from("empresas_conveniadas")
+        .delete()
+        .eq("id", companyId);
+      if (error && error.code !== "PGRST205") throw error;
+    }
+
+    empresasCache = empresasCache.filter((c) => String(c.id) !== String(companyId));
+    localStorage.setItem("sr_empresas_cache", JSON.stringify(empresasCache));
+    showNotification("Empresa parceira excluída com sucesso.", "info");
+    await loadEmpresas();
+  } catch (err) {
+    showNotification("Erro ao excluir empresa: " + err.message, "error");
   }
 };
 
