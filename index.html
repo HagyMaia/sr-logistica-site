@@ -31,6 +31,7 @@
                 <a href="#solucoes">Soluções</a>
                 <a href="#empresa">A empresa</a>
                 <a href="#app-passageiro">App Passageiro</a>
+                <a href="#dashboard" class="highlight-link" style="background: rgba(229, 168, 59, 0.12); color: var(--amber); border-color: rgba(229, 168, 59, 0.3);"><i class="fas fa-chart-pie"></i> Painel</a>
                 <a href="#cadastro-passageiro" class="highlight-link"><i class="fas fa-user-plus"></i> Cadastrar</a>
                 <a href="#relatorios" class="highlight-link" style="background: rgba(38, 130, 105, 0.12); color: var(--green); border-color: rgba(38, 130, 105, 0.3);"><i class="fas fa-file-invoice-dollar"></i> Relatórios</a>
                 <a href="#novidades">Atualizações</a>
@@ -224,6 +225,73 @@
 
                             <div id="pass-form-feedback" class="pass-feedback"></div>
                         </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Seção Mini Dashboard Operacional: Relatórios, Motoristas e Passageiros -->
+        <section id="dashboard" class="section dashboard-section">
+            <div class="container">
+                <div class="section-heading reveal">
+                    <span class="eyebrow" style="color: var(--amber);"><i class="fas fa-chart-pie"></i> Visão Geral Operacional</span>
+                    <h2>Painel de Indicadores & Relatórios</h2>
+                    <p>Métricas consolidadas em tempo real sobre nossa frota de motoristas, colaboradores cadastrados e histórico de rotas.</p>
+                </div>
+
+                <!-- Cards de Indicadores Rápidos -->
+                <div class="dash-metrics-grid reveal">
+                    <div class="dash-metric-card">
+                        <div class="dash-metric-icon drivers"><i class="fas fa-id-card"></i></div>
+                        <div class="dash-metric-info">
+                            <h4>Motoristas Homologados</h4>
+                            <div class="dash-number" id="dash-stat-drivers">...</div>
+                            <div class="dash-sub" id="dash-stat-drivers-sub">Particular & Frota Corporativa</div>
+                        </div>
+                    </div>
+
+                    <div class="dash-metric-card">
+                        <div class="dash-metric-icon passengers"><i class="fas fa-users"></i></div>
+                        <div class="dash-metric-info">
+                            <h4>Passageiros Cadastrados</h4>
+                            <div class="dash-number" id="dash-stat-passengers">...</div>
+                            <div class="dash-sub" id="dash-stat-passengers-sub">Colaboradores ativos</div>
+                        </div>
+                    </div>
+
+                    <div class="dash-metric-card">
+                        <div class="dash-metric-icon reports"><i class="fas fa-route"></i></div>
+                        <div class="dash-metric-info">
+                            <h4>Corridas & Relatórios</h4>
+                            <div class="dash-number" id="dash-stat-rides">...</div>
+                            <div class="dash-sub" id="dash-stat-rides-sub">Viagens e fechamentos</div>
+                        </div>
+                    </div>
+
+                    <div class="dash-metric-card">
+                        <div class="dash-metric-icon companies"><i class="fas fa-building"></i></div>
+                        <div class="dash-metric-info">
+                            <h4>Empresas Conveniadas</h4>
+                            <div class="dash-number" id="dash-stat-companies">...</div>
+                            <div class="dash-sub">Pólo Industrial de Manaus</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Painel com Abas Interativas -->
+                <div class="dash-board-panel reveal">
+                    <div class="dash-board-header">
+                        <div class="dash-nav-tabs">
+                            <button class="dash-tab-btn active" data-tab="drivers"><i class="fas fa-car-side"></i> Motoristas</button>
+                            <button class="dash-tab-btn" data-tab="passengers"><i class="fas fa-user-group"></i> Passageiros</button>
+                            <button class="dash-tab-btn" data-tab="reports"><i class="fas fa-file-lines"></i> Relatórios & Extratos</button>
+                        </div>
+                        <a href="admin.html" class="hero-text-link" style="font-size: 0.85rem; font-weight: bold; color: var(--green);">
+                            Acessar Painel Admin <i class="fas fa-arrow-right"></i>
+                        </a>
+                    </div>
+                    <div class="dash-board-content" id="dash-content-container">
+                        <p class="loading-state" style="text-align:center; padding: 20px; color:var(--muted);"><i class="fas fa-spinner fa-spin"></i> Carregando indicadores da operação...</p>
                     </div>
                 </div>
             </div>

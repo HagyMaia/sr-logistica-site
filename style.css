@@ -1691,6 +1691,202 @@ body.dark-mode .pass-form-header h3 {
   }
 }
 
+/* =========================================================================
+   Mini Dashboard Operacional (Site Principal)
+   ========================================================================= */
+.dashboard-section {
+  background: var(--paper);
+  border-top: 1px solid var(--line);
+  padding: 80px 0;
+}
+
+.dash-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 18px;
+  margin-bottom: 28px;
+}
+
+.dash-metric-card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: transform 0.25s var(--ease), border-color 0.25s var(--ease);
+}
+
+.dash-metric-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--amber);
+}
+
+.dash-metric-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.dash-metric-icon.drivers {
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+
+.dash-metric-icon.passengers {
+  background: var(--green-soft);
+  color: var(--green);
+}
+
+.dash-metric-icon.reports {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.dash-metric-icon.companies {
+  background: #f3e8ff;
+  color: #9333ea;
+}
+
+.dash-metric-info h4 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.dash-metric-info .dash-number {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.1;
+  font-family: 'DM Mono', monospace;
+}
+
+.dash-metric-info .dash-sub {
+  font-size: 0.76rem;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.dash-board-panel {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.dash-board-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  background: rgba(0, 0, 0, 0.015);
+}
+
+.dash-nav-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dash-tab-btn {
+  background: transparent;
+  border: 1px solid var(--line);
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s var(--ease);
+}
+
+.dash-tab-btn:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+.dash-tab-btn.active {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+
+.dash-board-content {
+  padding: 24px;
+  min-height: 240px;
+}
+
+.dash-table-wrap {
+  overflow-x: auto;
+}
+
+.dash-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.86rem;
+}
+
+.dash-table th {
+  padding: 12px 14px;
+  background: rgba(0, 0, 0, 0.02);
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--line);
+}
+
+.dash-table td {
+  padding: 14px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.dash-table tr:last-child td {
+  border-bottom: none;
+}
+
+.dash-tag {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.dash-tag.particular {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.dash-tag.empresa {
+  background: var(--amber-soft);
+  color: #925c0a;
+}
+
+.dash-tag.status-active {
+  background: var(--green-soft);
+  color: var(--green);
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
