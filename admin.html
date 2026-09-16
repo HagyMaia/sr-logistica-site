@@ -303,9 +303,14 @@
                             <h2>Aprovações de motoristas</h2>
                             <p>Revise os documentos e escolha quem pode entrar para a operação.</p>
                         </div>
-                        <button class="btn btn-secondary" id="refresh-approvals">
-                            <i class="fas fa-rotate"></i> Atualizar fila
-                        </button>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                            <button class="btn btn-secondary" id="refresh-approvals">
+                                <i class="fas fa-rotate"></i> Atualizar fila
+                            </button>
+                            <button class="btn btn-primary" id="btn-open-driver-modal-approvals" style="width:auto;">
+                                <i class="fas fa-plus"></i> Novo Motorista
+                            </button>
+                        </div>
                     </div>
 
                     <div class="tabs" role="tablist">
@@ -362,6 +367,14 @@
                             <span class="eyebrow">Base operacional</span>
                             <h2>Motoristas cadastrados</h2>
                             <p>Consulte o histórico de aprovação, categoria (Particular vs Empresa) e dados da sua equipe.</p>
+                        </div>
+                        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                            <button class="btn btn-secondary" id="refresh-drivers-list">
+                                <i class="fas fa-rotate"></i> Atualizar motoristas
+                            </button>
+                            <button class="btn btn-primary" id="btn-open-driver-modal" style="width:auto;">
+                                <i class="fas fa-plus"></i> Novo Motorista
+                            </button>
                         </div>
                     </div>
                     <div id="drivers-container" class="driver-grid">
@@ -764,6 +777,107 @@
                 </button>
             </div>
         </div>
+    </div>
+
+    <!-- Modal de Cadastro / Edição de Motorista -->
+    <div id="driver-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="driver-modal-title">
+        <div class="modal-card" style="max-width:620px;">
+            <button id="close-driver-modal" class="toggle-password" style="position:absolute; right:16px; top:16px; font-size:18px; cursor:pointer;" aria-label="Fechar modal">
+                <i class="fas fa-xmark"></i>
+            </button>
+            <div class="eyebrow" style="margin-bottom:6px;">
+                <i class="fas fa-id-card"></i> Gestão da Frota & Parceiros
+            </div>
+            <h2 id="driver-modal-title" style="margin:0 0 6px; font-size:22px; letter-spacing:-.04em;">Cadastrar Novo Motorista</h2>
+            <p style="color:#5f6d73; font-size:12px; margin:0 0 18px;">Cadastre motoristas definindo a categoria operacional e o tipo de corridas autorizadas.</p>
+
+            <form id="driver-form" novalidate>
+                <input type="hidden" id="driver-modal-id" value="">
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="driver-name">Nome Social / Chamado *</label>
+                        <input type="text" id="driver-name" required placeholder="Ex: Silvio Ramos">
+                    </div>
+                    <div class="form-group">
+                        <label for="driver-full-name">Nome Completo Oficial</label>
+                        <input type="text" id="driver-full-name" placeholder="Ex: Silvio Ramos Martins">
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="driver-phone">Telefone / WhatsApp *</label>
+                        <input type="tel" id="driver-phone" required placeholder="(92) 99999-9999">
+                    </div>
+                    <div class="form-group">
+                        <label for="driver-cpf">CPF</label>
+                        <input type="text" id="driver-cpf" placeholder="000.000.000-00">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="driver-category-select">Categoria Operacional & Regra de Corridas *</label>
+                    <select id="driver-category-select" style="font-weight:700;">
+                        <option value="particular">👤 Motorista Particular (Recebe os DOIS: Voucher e Corridas Particulares)</option>
+                        <option value="empresa">🏢 Frota Corporativa / Empresa (Recebe APENAS Corridas em Voucher)</option>
+                    </select>
+                    <small id="driver-category-help" style="display:block; margin-top:5px; font-size:11px; color:var(--ink-soft); line-height:1.4;">
+                        ℹ️ <strong>Particular:</strong> pode receber vouchers corporativos e corridas particulares em dinheiro/PIX/cartão.<br>
+                        ℹ️ <strong>Empresa:</strong> recebe exclusivamente vouchers corporativos faturados.
+                    </small>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="driver-car-brand">Marca do Veículo</label>
+                        <input type="text" id="driver-car-brand" placeholder="Ex: Toyota, Chevrolet, Renault">
+                    </div>
+                    <div class="form-group">
+                        <label for="driver-car-model">Modelo do Veículo</label>
+                        <input type="text" id="driver-car-model" placeholder="Ex: Corolla, Spin 7L, Logan">
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="driver-car-plate">Placa do Veículo *</label>
+                        <input type="text" id="driver-car-plate" placeholder="Ex: PHA-4E21 / QZZ-1A90" style="text-transform:uppercase;">
+                    </div>
+                    <div class="form-group">
+                        <label for="driver-car-color">Cor do Veículo</label>
+                        <input type="text" id="driver-car-color" placeholder="Ex: Prata, Branco, Preto">
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="driver-status-select">Status Operacional</label>
+                        <select id="driver-status-select">
+                            <option value="Aprovado">Aprovado (Ativo na Operação)</option>
+                            <option value="Pendente">Pendente (Fila de Análise)</option>
+                            <option value="Reprovado">Desativado / Inativo</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="driver-email">E-mail</label>
+                        <input type="email" id="driver-email" placeholder="motorista@exemplo.com">
+                    </div>
+                </div>
+
+                <div class="form-actions" style="margin-top:20px; display:flex; gap:10px; justify-content:flex-end;">
+                    <button type="button" class="btn btn-secondary" id="btn-cancel-driver-modal" style="width:auto;">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="btn-submit-driver" style="width:auto;">
+                        <i class="fas fa-save"></i> Salvar Motorista
+                    </button>
+                </div>
+                <div id="driver-feedback" class="feedback-msg" aria-live="polite"></div>
+            </form>
+        </div>
+    </div>
+
     <!-- Modal de Cadastro / Edição de Empresa Conveniada -->
     <div id="company-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="company-modal-title">
         <div class="modal-card" style="max-width:620px;">

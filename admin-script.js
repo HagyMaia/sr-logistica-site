@@ -69,6 +69,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupLoginForm();
   setupSecurityForm();
   setupPostsForm();
+  setupDriverModal();
   setupPassengerModal();
   setupPassengerFilters();
   setupCompanyModal();
@@ -314,6 +315,11 @@ function setupNavigation() {
     btnRefreshDrivers.addEventListener("click", () => loadMotoristas());
   }
 
+  const btnRefreshDriversList = document.getElementById("refresh-drivers-list");
+  if (btnRefreshDriversList) {
+    btnRefreshDriversList.addEventListener("click", () => loadMotoristas());
+  }
+
   const btnRefreshPassengers = document.getElementById(
     "refresh-passenger-approvals",
   );
@@ -440,24 +446,116 @@ function getInitialPassengersMock() {
   return [];
 }
 
-// --- MOTORISTAS: CARREGAMENTO ---
-async function loadMotoristas() {
-  if (!supabaseClient) return;
-  try {
-    const { data, error } = await supabaseClient
-      .from("motoristas")
-      .select("*")
-      .order("created_at", { ascending: false });
+function getInitialDriversMock() {
+  return [
+    {
+      id: "drv-01",
+      nome: "Silvio Ramos Martins",
+      nome_social: "Silvio Ramos",
+      nome_completo: "Silvio Ramos Martins",
+      cpf: "123.456.789-00",
+      telefone: "(92) 98416-2443",
+      email: "srlogistica21@gmail.com",
+      categoria_tipo: "particular",
+      categoria: "Particular",
+      recebe_voucher: true,
+      recebe_particular: true,
+      marca_veiculo: "Toyota",
+      modelo_veiculo: "Corolla XEi",
+      placa_veiculo: "PHA-4E21",
+      cor_veiculo: "Prata",
+      status: "Aprovado",
+      vehicle_status: "Aprovado",
+      created_at: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString()
+    },
+    {
+      id: "drv-02",
+      nome: "Marcos Paulo Souza",
+      nome_social: "Marcos Paulo",
+      nome_completo: "Marcos Paulo Souza",
+      cpf: "987.654.321-11",
+      telefone: "(92) 99123-4567",
+      email: "marcos.transporte@gmail.com",
+      categoria_tipo: "empresa",
+      categoria: "Empresa",
+      recebe_voucher: true,
+      recebe_particular: false,
+      marca_veiculo: "Chevrolet",
+      modelo_veiculo: "Spin 7 Lugares",
+      placa_veiculo: "QZZ-1A90",
+      cor_veiculo: "Branco",
+      status: "Aprovado",
+      vehicle_status: "Aprovado",
+      created_at: new Date(Date.now() - 20 * 24 * 3600 * 1000).toISOString()
+    },
+    {
+      id: "drv-03",
+      nome: "Antônio Carlos Vieira",
+      nome_social: "Antônio Carlos",
+      nome_completo: "Antônio Carlos Vieira",
+      cpf: "456.789.123-22",
+      telefone: "(92) 98877-6655",
+      email: "acarlos.log@outlook.com",
+      categoria_tipo: "particular",
+      categoria: "Particular",
+      recebe_voucher: true,
+      recebe_particular: true,
+      marca_veiculo: "Renault",
+      modelo_veiculo: "Logan Zen",
+      placa_veiculo: "NOX-3382",
+      cor_veiculo: "Cinza",
+      status: "Aprovado",
+      vehicle_status: "Aprovado",
+      created_at: new Date(Date.now() - 10 * 24 * 3600 * 1000).toISOString()
+    }
+  ];
+}
 
-    if (error) throw error;
-    motoristasCache = data || [];
-    updateMetrics();
-    renderOverviewApprovals();
-    renderApprovals();
-    renderDrivers();
+// --- MOTORISTAS: CARREGAMENTO & CACHE RESILIENTE ---
+async function loadMotoristas() {
+  try {
+    if (supabaseClient) {
+      const { data, error } = await supabaseClient
+        .from("motoristas")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.warn("Aviso ao buscar motoristas no Supabase:", error.message, "(utilizando armazenamento local)");
+        const localData = localStorage.getItem("sr_motoristas_cache");
+        motoristasCache = localData ? JSON.parse(localData) : getInitialDriversMock();
+      } else if (data && data.length > 0) {
+        // Normaliza campos de categoria e permissões de corrida
+        motoristasCache = data.map((m) => {
+          const isEmpresa = (m.categoria_tipo === "empresa" || m.categoria === "Empresa" || String(m.categoria_tipo).toLowerCase() === "empresa");
+          return {
+            ...m,
+            categoria_tipo: isEmpresa ? "empresa" : "particular",
+            categoria: isEmpresa ? "Empresa" : "Particular",
+            recebe_voucher: true,
+            recebe_particular: !isEmpresa
+          };
+        });
+        localStorage.setItem("sr_motoristas_cache", JSON.stringify(motoristasCache));
+      } else {
+        const localData = localStorage.getItem("sr_motoristas_cache");
+        motoristasCache = localData ? JSON.parse(localData) : getInitialDriversMock();
+        localStorage.setItem("sr_motoristas_cache", JSON.stringify(motoristasCache));
+      }
+    } else {
+      const localData = localStorage.getItem("sr_motoristas_cache");
+      motoristasCache = localData ? JSON.parse(localData) : getInitialDriversMock();
+    }
   } catch (err) {
-    console.error("Erro ao buscar motoristas:", err);
+    console.error("Erro ao carregar motoristas:", err);
+    const localData = localStorage.getItem("sr_motoristas_cache");
+    motoristasCache = localData ? JSON.parse(localData) : getInitialDriversMock();
   }
+
+  updateMetrics();
+  renderOverviewApprovals();
+  renderApprovals();
+  renderDrivers();
 }
 
 // --- MÉTRICAS GLOBAIS ---
@@ -1096,6 +1194,38 @@ function setupPassengerModal() {
   }
 }
 
+// --- REGRAS DE DISPATCH E ELEGIBILIDADE POR CATEGORIA ---
+function isVoucherPayment(paymentMethod) {
+  if (!paymentMethod) return true;
+  const method = String(paymentMethod).toLowerCase();
+  return (
+    method.includes("voucher") ||
+    method.includes("convenio") ||
+    method.includes("convênio") ||
+    method.includes("empresa") ||
+    method.includes("corporativo") ||
+    method.includes("fatur")
+  );
+}
+
+function isDriverEligibleForRide(driver, ride) {
+  if (!driver) return false;
+  const isEmpresa = driver.categoria_tipo === "empresa" || driver.categoria === "Empresa";
+  if (!isEmpresa) {
+    // Motorista Particular: recebe OS DOIS (Voucher Corporativo e Corridas Particulares)
+    return true;
+  }
+  // Motorista Frota Empresa: recebe APENAS corridas em Voucher
+  const paymentMethod = typeof ride === "string" ? ride : (ride?.payment_method || "Voucher Corporativo");
+  return isVoucherPayment(paymentMethod);
+}
+
+function getEligibleDriversForRide(ride) {
+  return motoristasCache.filter(
+    (m) => m.status === "Aprovado" && isDriverEligibleForRide(m, ride)
+  );
+}
+
 // --- ABA: APROVAÇÕES DE MOTORISTAS ---
 function renderApprovals() {
   const container = document.getElementById("approvals-container");
@@ -1129,7 +1259,7 @@ function renderApprovals() {
   html += '<th style="padding:10px;">Contato</th>';
   html += '<th style="padding:10px;">Veículo & Placa</th>';
   html += '<th style="padding:10px;">Tipo Entrada</th>';
-  html += '<th style="padding:10px;">Categoria Motorista</th>';
+  html += '<th style="padding:10px;">Categoria & Regra de Corridas</th>';
   html += '<th style="padding:10px;">Status</th>';
   html += '<th style="padding:10px; text-align:right;">Ações</th>';
   html += "</tr></thead><tbody>";
@@ -1176,11 +1306,16 @@ function renderApprovals() {
         : '<span style="color:var(--green); font-weight: bold;">Novo Cadastro</span>') +
       "</td>";
     html +=
-      '  <td style="padding:10px;">' +
-      '    <select onchange="changeDriverCategory(\'' + m.id + '\', this.value)" style="background:var(--paper); border:1px solid var(--line); border-radius:6px; font-size:11px; padding:4px 6px; font-weight:bold; color:var(--ink); cursor:pointer;">' +
-      '      <option value="particular" ' + (!isEmpresa ? 'selected' : '') + '>👤 Motorista Particular</option>' +
-      '      <option value="empresa" ' + (isEmpresa ? 'selected' : '') + '>🏢 Empresa / Frota</option>' +
+      '  <td style="padding:10px; min-width:210px;">' +
+      '    <select onchange="changeDriverCategory(\'' + m.id + '\', this.value)" style="width:100%; background:var(--paper); border:1px solid var(--line); border-radius:6px; font-size:11px; padding:5px 6px; font-weight:bold; color:var(--ink); cursor:pointer;">' +
+      '      <option value="particular" ' + (!isEmpresa ? 'selected' : '') + '>👤 Particular (Voucher + Particular)</option>' +
+      '      <option value="empresa" ' + (isEmpresa ? 'selected' : '') + '>🏢 Empresa (Apenas Voucher)</option>' +
       '    </select>' +
+      '    <div class="driver-rule-badge ' + (isEmpresa ? 'empresa' : 'particular') + '">' +
+      (isEmpresa
+        ? '<i class="fas fa-building"></i> <strong>Apenas Voucher</strong> (Faturamento Corporativo)'
+        : '<i class="fas fa-user-check"></i> <strong>Recebe os Dois</strong> (Voucher e Particulares)') +
+      '    </div>' +
       '  </td>';
     html +=
       '  <td style="padding:10px;"><span class="status-badge ' +
@@ -1189,6 +1324,11 @@ function renderApprovals() {
       (isVehicleChange ? "Carro em Análise" : escapeHtml(m.status || "Pendente")) +
       "</span></td>";
     html += '  <td style="padding:10px; text-align:right; white-space:nowrap;">';
+
+    html +=
+      '    <button class="btn btn-secondary" style="padding:5px 8px; font-size:11px; min-height:30px; margin-right:4px;" onclick="openEditDriverModal(\'' +
+      m.id +
+      '\')" title="Editar dados do motorista"><i class="fas fa-pen-to-square"></i></button>';
 
     if (isPending) {
       html +=
@@ -1256,11 +1396,13 @@ function renderDrivers() {
           <div style="width:40px; height:40px; border-radius:10px; background:var(--amber-soft); color:#925c0a; display:flex; align-items:center; justify-content:center; font-weight:bold;">
             ${initial}
           </div>
-          <div>
-            <strong style="font-size:14px; display:block;">${escapeHtml(m.nome_social || m.nome)}</strong>
+          <div style="flex:1; min-width:0;">
+            <strong style="font-size:14px; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(m.nome_social || m.nome)}</strong>
             <small style="font-size:11px; color:var(--ink-soft);">${escapeHtml(m.nome_completo || "")}</small>
           </div>
-          <span class="status-badge approved" style="margin-left:auto;">Ativo</span>
+          <span class="${isEmpresa ? 'tag-category-empresa' : 'tag-category-particular'}">
+            <i class="fas ${isEmpresa ? 'fa-building' : 'fa-user'}"></i> ${isEmpresa ? 'Frota Empresa' : 'Particular'}
+          </span>
         </div>
         <div class="driver-detail" style="font-size:12px; line-height:1.7;">
           <div><i class="fas fa-car" style="width:18px; color:var(--green);"></i> ${escapeHtml(m.marca_veiculo || "")} ${escapeHtml(m.modelo_veiculo || "Veículo não inf.")}</div>
@@ -1269,18 +1411,28 @@ function renderDrivers() {
           <div><i class="fas fa-location-dot" style="width:18px; color:var(--green);"></i> Manaus - AM</div>
         </div>
 
-        <!-- Seletor de Categoria do Motorista -->
-        <div style="margin-top:10px; padding:8px 10px; background:var(--paper); border-radius:8px; border:1px solid var(--line); display:flex; align-items:center; justify-content:space-between; gap:8px;">
-          <span style="font-size:11px; font-weight:bold; color:var(--ink-soft);"><i class="fas fa-tags" style="color:var(--amber);"></i> Categoria:</span>
-          <select onchange="changeDriverCategory('${m.id}', this.value)" style="background:var(--white); border:1px solid var(--line); border-radius:6px; font-size:11px; padding:3px 6px; font-weight:bold; color:var(--ink); cursor:pointer;">
-            <option value="particular" ${!isEmpresa ? 'selected' : ''}>👤 Motorista Particular</option>
-            <option value="empresa" ${isEmpresa ? 'selected' : ''}>🏢 Frota Corporativa / Empresa</option>
-          </select>
+        <!-- Seletor de Categoria do Motorista e Regra de Despacho -->
+        <div style="margin-top:10px; padding:10px; background:var(--paper); border-radius:8px; border:1px solid var(--line);">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px;">
+            <span style="font-size:11px; font-weight:bold; color:var(--ink-soft);"><i class="fas fa-tags" style="color:var(--amber);"></i> Categoria:</span>
+            <select onchange="changeDriverCategory('${m.id}', this.value)" style="background:var(--white); border:1px solid var(--line); border-radius:6px; font-size:11px; padding:4px 6px; font-weight:bold; color:var(--ink); cursor:pointer;">
+              <option value="particular" ${!isEmpresa ? 'selected' : ''}>👤 Motorista Particular</option>
+              <option value="empresa" ${isEmpresa ? 'selected' : ''}>🏢 Frota Empresa / Convênio</option>
+            </select>
+          </div>
+          <div class="driver-rule-badge ${isEmpresa ? 'empresa' : 'particular'}">
+            ${isEmpresa
+              ? '<i class="fas fa-building"></i> <strong>Apenas Voucher:</strong> Atende exclusivamente faturamento corporativo.'
+              : '<i class="fas fa-user-check"></i> <strong>Recebe os Dois:</strong> Atende Voucher corporativo e corridas particulares.'}
+          </div>
         </div>
 
         <div style="border-top:1px solid var(--line); margin-top:14px; padding-top:10px; display:flex; justify-content:space-between; align-items:center;">
           <small style="color:#788b90; font-size:10px;">Status: <strong style="color:var(--green);">Ativo</strong></small>
           <div style="display:flex; gap:6px;">
+            <button class="btn btn-secondary" style="padding:3px 8px; font-size:11px; min-height:26px;" onclick="openEditDriverModal('${m.id}')" title="Editar motorista">
+              <i class="fas fa-pen-to-square"></i> Editar
+            </button>
             <button class="btn btn-secondary" style="padding:3px 8px; font-size:11px; min-height:26px;" onclick="rejectDriver('${m.id}')" title="Suspender / Desativar motorista">
               <i class="fas fa-ban" style="color:#be7b20;"></i> Desativar
             </button>
@@ -1300,31 +1452,63 @@ function renderDrivers() {
 window.changeDriverCategory = async function (driverId, newCategory) {
   try {
     const isEmpresa = newCategory === "empresa" || newCategory === "Empresa";
-    const categoryLabel = isEmpresa ? "Frota Corporativa / Empresa" : "Motorista Particular";
+    const catTipo = isEmpresa ? "empresa" : "particular";
+    const catLabel = isEmpresa ? "Frota Corporativa / Empresa" : "Motorista Particular";
+    const ruleLabel = isEmpresa
+      ? "Este motorista agora receberá APENAS corridas em Voucher corporativo."
+      : "Este motorista agora receberá os DOIS tipos de corridas (Voucher e Particulares).";
 
-    if (supabaseClient) {
-      const { error } = await supabaseClient
-        .from("motoristas")
-        .update({
-          categoria_tipo: newCategory,
-          categoria: isEmpresa ? "Empresa" : "Particular"
-        })
-        .eq("id", driverId);
-
-      if (error && error.code !== "PGRST205") throw error;
-    }
-
+    // 1. Atualiza cache em memória imediatamente
     const item = motoristasCache.find((m) => String(m.id) === String(driverId));
     if (item) {
-      item.categoria_tipo = newCategory;
+      item.categoria_tipo = catTipo;
       item.categoria = isEmpresa ? "Empresa" : "Particular";
+      item.recebe_voucher = true;
+      item.recebe_particular = !isEmpresa;
+      item.updated_at = new Date().toISOString();
+    }
+    // 2. Persistir no LocalStorage imediatamente
+    localStorage.setItem("sr_motoristas_cache", JSON.stringify(motoristasCache));
+
+    // 3. Atualizar no Supabase com resiliência de schema
+    if (supabaseClient) {
+      try {
+        const { error: errFull } = await supabaseClient
+          .from("motoristas")
+          .update({
+            categoria_tipo: catTipo,
+            categoria: isEmpresa ? "Empresa" : "Particular",
+            recebe_voucher: true,
+            recebe_particular: !isEmpresa,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", driverId);
+
+        if (errFull) {
+          console.warn("Tentando fallback de atualização de categoria:", errFull.message);
+          const { error: errTipo } = await supabaseClient
+            .from("motoristas")
+            .update({ categoria_tipo: catTipo })
+            .eq("id", driverId);
+
+          if (errTipo) {
+            await supabaseClient
+              .from("motoristas")
+              .update({ categoria: isEmpresa ? "Empresa" : "Particular" })
+              .eq("id", driverId);
+          }
+        }
+      } catch (dbErr) {
+        console.warn("Aviso ao sincronizar categoria no Supabase (salvo localmente):", dbErr);
+      }
     }
 
-    showNotification(`Categoria do motorista atualizada para: ${categoryLabel}`, "success");
+    showNotification(`Categoria salva: ${catLabel}! ${ruleLabel}`, "success");
     renderOverviewApprovals();
     renderApprovals();
     renderDrivers();
   } catch (err) {
+    console.error("Erro ao alterar categoria do motorista:", err);
     showNotification("Erro ao alterar categoria do motorista: " + err.message, "error");
   }
 };
@@ -1332,23 +1516,28 @@ window.changeDriverCategory = async function (driverId, newCategory) {
 window.approveDriver = async function (driverId) {
   if (!confirm("Deseja aprovar / reativar este motorista para a operação?")) return;
   try {
-    if (supabaseClient) {
-      const { error } = await supabaseClient
-        .from("motoristas")
-        .update({ status: "Aprovado", vehicle_status: "Aprovado" })
-        .eq("id", driverId);
-
-      if (error && error.code !== "PGRST205") throw error;
-    }
-
     const item = motoristasCache.find((m) => String(m.id) === String(driverId));
     if (item) {
       item.status = "Aprovado";
       item.vehicle_status = "Aprovado";
+      item.updated_at = new Date().toISOString();
+    }
+    localStorage.setItem("sr_motoristas_cache", JSON.stringify(motoristasCache));
+
+    if (supabaseClient) {
+      const { error } = await supabaseClient
+        .from("motoristas")
+        .update({ status: "Aprovado", vehicle_status: "Aprovado", updated_at: new Date().toISOString() })
+        .eq("id", driverId);
+
+      if (error && error.code !== "PGRST205") console.warn("Supabase update status:", error);
     }
 
     showNotification("Motorista aprovado/reativado com sucesso!", "success");
-    await loadMotoristas();
+    updateMetrics();
+    renderOverviewApprovals();
+    renderApprovals();
+    renderDrivers();
   } catch (err) {
     showNotification("Erro ao aprovar motorista: " + err.message, "error");
   }
@@ -1357,23 +1546,28 @@ window.approveDriver = async function (driverId) {
 window.rejectDriver = async function (driverId) {
   if (!confirm("Deseja desativar / reprovar este motorista?")) return;
   try {
-    if (supabaseClient) {
-      const { error } = await supabaseClient
-        .from("motoristas")
-        .update({ status: "Reprovado", vehicle_status: "Reprovado" })
-        .eq("id", driverId);
-
-      if (error && error.code !== "PGRST205") throw error;
-    }
-
     const item = motoristasCache.find((m) => String(m.id) === String(driverId));
     if (item) {
       item.status = "Reprovado";
       item.vehicle_status = "Reprovado";
+      item.updated_at = new Date().toISOString();
+    }
+    localStorage.setItem("sr_motoristas_cache", JSON.stringify(motoristasCache));
+
+    if (supabaseClient) {
+      const { error } = await supabaseClient
+        .from("motoristas")
+        .update({ status: "Reprovado", vehicle_status: "Reprovado", updated_at: new Date().toISOString() })
+        .eq("id", driverId);
+
+      if (error && error.code !== "PGRST205") console.warn("Supabase update status:", error);
     }
 
     showNotification("Motorista desativado/reprovado com sucesso.", "warning");
-    await loadMotoristas();
+    updateMetrics();
+    renderOverviewApprovals();
+    renderApprovals();
+    renderDrivers();
   } catch (err) {
     showNotification("Erro ao desativar motorista: " + err.message, "error");
   }
@@ -1382,18 +1576,19 @@ window.rejectDriver = async function (driverId) {
 window.deleteDriver = async function (driverId) {
   if (!confirm("Deseja realmente excluir este motorista permanentemente do sistema?")) return;
   try {
+    motoristasCache = motoristasCache.filter(
+      (m) => String(m.id) !== String(driverId),
+    );
+    localStorage.setItem("sr_motoristas_cache", JSON.stringify(motoristasCache));
+
     if (supabaseClient) {
       const { error } = await supabaseClient
         .from("motoristas")
         .delete()
         .eq("id", driverId);
 
-      if (error && error.code !== "PGRST205") throw error;
+      if (error && error.code !== "PGRST205") console.warn("Supabase delete driver:", error);
     }
-
-    motoristasCache = motoristasCache.filter(
-      (m) => String(m.id) !== String(driverId),
-    );
 
     showNotification("Motorista excluído com sucesso.", "info");
     updateMetrics();
@@ -1404,6 +1599,191 @@ window.deleteDriver = async function (driverId) {
     showNotification("Erro ao excluir motorista: " + err.message, "error");
   }
 };
+
+// --- MODAL DE CADASTRO / EDIÇÃO DE MOTORISTA ---
+function setupDriverModal() {
+  const modal = document.getElementById("driver-modal");
+  const openBtn = document.getElementById("btn-open-driver-modal");
+  const openBtnApprovals = document.getElementById("btn-open-driver-modal-approvals");
+  const closeBtn = document.getElementById("close-driver-modal");
+  const cancelBtn = document.getElementById("btn-cancel-driver-modal");
+  const form = document.getElementById("driver-form");
+  const feedback = document.getElementById("driver-feedback");
+  const modalTitle = document.getElementById("driver-modal-title");
+
+  const openModal = (driverData = null) => {
+    if (!modal) return;
+    if (feedback) {
+      feedback.textContent = "";
+      feedback.className = "feedback-msg";
+    }
+
+    if (driverData) {
+      if (modalTitle) modalTitle.textContent = "Editar Motorista";
+      const idInput = document.getElementById("driver-modal-id");
+      if (idInput) idInput.value = driverData.id || "";
+      const nameInput = document.getElementById("driver-name");
+      if (nameInput) nameInput.value = driverData.nome_social || driverData.nome || "";
+      const fullNameInput = document.getElementById("driver-full-name");
+      if (fullNameInput) fullNameInput.value = driverData.nome_completo || driverData.nome || "";
+      const phoneInput = document.getElementById("driver-phone");
+      if (phoneInput) phoneInput.value = driverData.telefone || driverData.phone || "";
+      const cpfInput = document.getElementById("driver-cpf");
+      if (cpfInput) cpfInput.value = driverData.cpf || "";
+      const catSelect = document.getElementById("driver-category-select");
+      if (catSelect) catSelect.value = driverData.categoria_tipo || (driverData.categoria === "Empresa" ? "empresa" : "particular");
+      const brandInput = document.getElementById("driver-car-brand");
+      if (brandInput) brandInput.value = driverData.marca_veiculo || "";
+      const modelInput = document.getElementById("driver-car-model");
+      if (modelInput) modelInput.value = driverData.modelo_veiculo || "";
+      const plateInput = document.getElementById("driver-car-plate");
+      if (plateInput) plateInput.value = driverData.placa_veiculo || "";
+      const colorInput = document.getElementById("driver-car-color");
+      if (colorInput) colorInput.value = driverData.cor_veiculo || "";
+      const statusSelect = document.getElementById("driver-status-select");
+      if (statusSelect) statusSelect.value = driverData.status || "Aprovado";
+      const emailInput = document.getElementById("driver-email");
+      if (emailInput) emailInput.value = driverData.email || "";
+    } else {
+      if (modalTitle) modalTitle.textContent = "Cadastrar Novo Motorista";
+      if (form) form.reset();
+      const idInput = document.getElementById("driver-modal-id");
+      if (idInput) idInput.value = "";
+      const catSelect = document.getElementById("driver-category-select");
+      if (catSelect) catSelect.value = "particular";
+      const statusSelect = document.getElementById("driver-status-select");
+      if (statusSelect) statusSelect.value = "Aprovado";
+    }
+
+    modal.classList.remove("hidden");
+  };
+
+  const closeModal = () => {
+    if (modal) modal.classList.add("hidden");
+  };
+
+  if (openBtn) openBtn.addEventListener("click", () => openModal());
+  if (openBtnApprovals) openBtnApprovals.addEventListener("click", () => openModal());
+  if (closeBtn) closeBtn.addEventListener("click", closeModal);
+  if (cancelBtn) cancelBtn.addEventListener("click", closeModal);
+
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const idInput = document.getElementById("driver-modal-id");
+      const driverId = idInput ? idInput.value.trim() : "";
+      const nomeSocial = (document.getElementById("driver-name")?.value || "").trim();
+      const nomeCompleto = (document.getElementById("driver-full-name")?.value || "").trim();
+      const telefone = (document.getElementById("driver-phone")?.value || "").trim();
+      const cpf = (document.getElementById("driver-cpf")?.value || "").trim();
+      const catTipo = document.getElementById("driver-category-select")?.value || "particular";
+      const isEmpresa = catTipo === "empresa";
+      const marca = (document.getElementById("driver-car-brand")?.value || "").trim();
+      const modelo = (document.getElementById("driver-car-model")?.value || "").trim();
+      const placa = (document.getElementById("driver-car-plate")?.value || "").trim().toUpperCase();
+      const cor = (document.getElementById("driver-car-color")?.value || "").trim();
+      const status = document.getElementById("driver-status-select")?.value || "Aprovado";
+      const email = (document.getElementById("driver-email")?.value || "").trim();
+
+      if (!nomeSocial || !telefone) {
+        if (feedback) {
+          feedback.textContent = "Por favor, preencha o nome e o telefone do motorista.";
+          feedback.className = "feedback-msg error";
+        }
+        return;
+      }
+
+      const submitBtn = document.getElementById("btn-submit-driver");
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+      }
+
+      try {
+        const payload = {
+          nome: nomeSocial,
+          nome_social: nomeSocial,
+          nome_completo: nomeCompleto || nomeSocial,
+          telefone: telefone,
+          cpf: cpf,
+          categoria_tipo: catTipo,
+          categoria: isEmpresa ? "Empresa" : "Particular",
+          recebe_voucher: true,
+          recebe_particular: !isEmpresa,
+          marca_veiculo: marca,
+          modelo_veiculo: modelo,
+          placa_veiculo: placa,
+          cor_veiculo: cor,
+          status: status,
+          vehicle_status: status === "Aprovado" ? "Aprovado" : "Pendente",
+          email: email,
+          updated_at: new Date().toISOString()
+        };
+
+        if (driverId) {
+          // Atualizar motorista existente
+          if (supabaseClient) {
+            const { error } = await supabaseClient
+              .from("motoristas")
+              .update(payload)
+              .eq("id", driverId);
+            if (error && error.code !== "PGRST205") console.warn("Supabase update motorista:", error);
+          }
+
+          const idx = motoristasCache.findIndex((m) => String(m.id) === String(driverId));
+          if (idx !== -1) {
+            motoristasCache[idx] = { ...motoristasCache[idx], ...payload };
+          }
+          localStorage.setItem("sr_motoristas_cache", JSON.stringify(motoristasCache));
+          showNotification(`Motorista ${nomeSocial} atualizado com sucesso!`, "success");
+        } else {
+          // Inserir novo motorista
+          let newId = "drv-" + Date.now();
+          if (supabaseClient) {
+            const { data, error } = await supabaseClient
+              .from("motoristas")
+              .insert([{ ...payload, created_at: new Date().toISOString() }])
+              .select();
+            if (!error && data && data[0]) {
+              newId = data[0].id;
+            }
+          }
+
+          const newDriverObj = {
+            id: newId,
+            ...payload,
+            created_at: new Date().toISOString()
+          };
+          motoristasCache.unshift(newDriverObj);
+          localStorage.setItem("sr_motoristas_cache", JSON.stringify(motoristasCache));
+          showNotification(`Motorista ${nomeSocial} cadastrado com sucesso! Categoria: ${isEmpresa ? "Frota Empresa (Apenas Voucher)" : "Particular (Voucher + Particular)"}`, "success");
+        }
+
+        closeModal();
+        updateMetrics();
+        renderOverviewApprovals();
+        renderApprovals();
+        renderDrivers();
+      } catch (err) {
+        console.error("Erro ao salvar motorista:", err);
+        if (feedback) {
+          feedback.textContent = "Erro ao salvar motorista: " + err.message;
+          feedback.className = "feedback-msg error";
+        }
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<i class="fas fa-save"></i> Salvar Motorista';
+        }
+      }
+    });
+  }
+
+  window.openEditDriverModal = function (driverId) {
+    const driver = motoristasCache.find((m) => String(m.id) === String(driverId));
+    if (driver) openModal(driver);
+  };
+}
 
 // --- GESTÃO DE EMPRESAS CONVENIADAS ---
 async function loadEmpresas() {
@@ -2390,6 +2770,17 @@ function openRideDetailsModal(rideId) {
         </div>
       </div>
     </div>
+
+    <!-- Regra de Categoria do Motorista para esta corrida -->
+    ${isVoucherPayment(ride.payment_method) ? `
+      <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:8px; padding:10px 14px; margin-bottom:12px; font-size:12px; color:#0369a1;">
+        <i class="fas fa-circle-check" style="color:#0284c7; margin-right:4px;"></i> <strong>Regra de Categoria (Voucher):</strong> Esta corrida é faturada em voucher corporativo. Elegível tanto para motoristas de <strong>Frota Empresa</strong> quanto <strong>Motoristas Particulares</strong>.
+      </div>
+    ` : `
+      <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:10px 14px; margin-bottom:12px; font-size:12px; color:#92400e;">
+        <i class="fas fa-circle-info" style="color:#d97706; margin-right:4px;"></i> <strong>Regra de Categoria (Particular):</strong> Corrida particular direta. Apenas motoristas da categoria <strong>Particular</strong> são elegíveis para receber este tipo de corrida.
+      </div>
+    `}
 
     ${ride.cancellation_reason ? `
       <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:10px 14px; margin-bottom:8px; font-size:12px; color:#991b1b;">

@@ -31,11 +31,9 @@
                 <a href="#solucoes">Soluções</a>
                 <a href="#empresa">A empresa</a>
                 <a href="#app-passageiro">App Passageiro</a>
-                <a href="#dashboard" class="highlight-link" style="background: rgba(229, 168, 59, 0.12); color: var(--amber); border-color: rgba(229, 168, 59, 0.3);"><i class="fas fa-chart-pie"></i> Painel</a>
-                <a href="#cadastro-passageiro" class="highlight-link"><i class="fas fa-user-plus"></i> Cadastrar</a>
-                <a href="#relatorios" class="highlight-link" style="background: rgba(38, 130, 105, 0.12); color: var(--green); border-color: rgba(38, 130, 105, 0.3);"><i class="fas fa-file-invoice-dollar"></i> Relatórios</a>
+                <a href="#cadastro-passageiro" class="highlight-link"><i class="fas fa-user-plus"></i> Solicitar Cadastro</a>
                 <a href="#novidades">Atualizações</a>
-                <a href="admin.html" class="admin-link"><i class="fas fa-lock"></i> Admin</a>
+                <a href="admin.html" class="admin-link"><i class="fas fa-lock"></i> Painel Admin</a>
                 <a href="#contato" class="nav-cta">Falar com a equipe <i class="fas fa-arrow-up-right-from-square"></i></a>
             </div>
             <div class="nav-tools"><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Ativar modo escuro" title="Alternar modo claro e escuro"><i class="fas fa-moon"></i></button><button class="nav-toggle" id="nav-toggle" aria-label="Abrir menu" aria-expanded="false"><i class="fas fa-bars"></i></button></div>
@@ -225,134 +223,6 @@
 
                             <div id="pass-form-feedback" class="pass-feedback"></div>
                         </form>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Seção Mini Dashboard Operacional: Relatórios, Motoristas e Passageiros -->
-        <section id="dashboard" class="section dashboard-section">
-            <div class="container">
-                <div class="section-heading reveal">
-                    <span class="eyebrow" style="color: var(--amber);"><i class="fas fa-chart-pie"></i> Visão Geral Operacional</span>
-                    <h2>Painel de Indicadores & Relatórios</h2>
-                    <p>Métricas consolidadas em tempo real sobre nossa frota de motoristas, colaboradores cadastrados e histórico de rotas.</p>
-                </div>
-
-                <!-- Cards de Indicadores Rápidos -->
-                <div class="dash-metrics-grid reveal">
-                    <div class="dash-metric-card">
-                        <div class="dash-metric-icon drivers"><i class="fas fa-id-card"></i></div>
-                        <div class="dash-metric-info">
-                            <h4>Motoristas Homologados</h4>
-                            <div class="dash-number" id="dash-stat-drivers">...</div>
-                            <div class="dash-sub" id="dash-stat-drivers-sub">Particular & Frota Corporativa</div>
-                        </div>
-                    </div>
-
-                    <div class="dash-metric-card">
-                        <div class="dash-metric-icon passengers"><i class="fas fa-users"></i></div>
-                        <div class="dash-metric-info">
-                            <h4>Passageiros Cadastrados</h4>
-                            <div class="dash-number" id="dash-stat-passengers">...</div>
-                            <div class="dash-sub" id="dash-stat-passengers-sub">Colaboradores ativos</div>
-                        </div>
-                    </div>
-
-                    <div class="dash-metric-card">
-                        <div class="dash-metric-icon reports"><i class="fas fa-route"></i></div>
-                        <div class="dash-metric-info">
-                            <h4>Corridas & Relatórios</h4>
-                            <div class="dash-number" id="dash-stat-rides">...</div>
-                            <div class="dash-sub" id="dash-stat-rides-sub">Viagens e fechamentos</div>
-                        </div>
-                    </div>
-
-                    <div class="dash-metric-card">
-                        <div class="dash-metric-icon companies"><i class="fas fa-building"></i></div>
-                        <div class="dash-metric-info">
-                            <h4>Empresas Conveniadas</h4>
-                            <div class="dash-number" id="dash-stat-companies">...</div>
-                            <div class="dash-sub">Pólo Industrial de Manaus</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Painel com Abas Interativas -->
-                <div class="dash-board-panel reveal">
-                    <div class="dash-board-header">
-                        <div class="dash-nav-tabs">
-                            <button class="dash-tab-btn active" data-tab="drivers"><i class="fas fa-car-side"></i> Motoristas</button>
-                            <button class="dash-tab-btn" data-tab="passengers"><i class="fas fa-user-group"></i> Passageiros</button>
-                            <button class="dash-tab-btn" data-tab="reports"><i class="fas fa-file-lines"></i> Relatórios & Extratos</button>
-                        </div>
-                        <a href="admin.html" class="hero-text-link" style="font-size: 0.85rem; font-weight: bold; color: var(--green);">
-                            Acessar Painel Admin <i class="fas fa-arrow-right"></i>
-                        </a>
-                    </div>
-                    <div class="dash-board-content" id="dash-content-container">
-                        <p class="loading-state" style="text-align:center; padding: 20px; color:var(--muted);"><i class="fas fa-spinner fa-spin"></i> Carregando indicadores da operação...</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Seção Relatórios & Fechamentos Corporativos -->
-        <section id="relatorios" class="section reports-section" style="background: var(--updates-bg); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line);">
-            <div class="container">
-                <div class="section-heading reveal">
-                    <span class="eyebrow" style="color: var(--green);"><i class="fas fa-chart-line"></i> Gestão e Transparência</span>
-                    <h2>Relatórios de Corridas & Fechamentos Corporativos</h2>
-                    <p>Controle financeiro e operacional com extratos quinzenais e mensais detalhados por empresa, passageiro e rota.</p>
-                </div>
-
-                <div class="solutions-grid" style="margin-bottom: 30px;">
-                    <article class="solution-card reveal" style="border-left: 4px solid var(--amber);">
-                        <div class="card-glow"></div>
-                        <div class="card-header-icon">
-                            <div class="icon-bubble" style="color: var(--amber);"><i class="fas fa-calendar-days"></i></div>
-                            <span class="card-index">1ª / 2ª Quinzena</span>
-                        </div>
-                        <h3>Fechamento Quinzenal</h3>
-                        <p>Consolidação de viagens do dia 01 ao 15 e do dia 16 ao fim do mês para faturamento corporativo pontual.</p>
-                    </article>
-
-                    <article class="solution-card reveal" style="border-left: 4px solid var(--green);">
-                        <div class="card-glow"></div>
-                        <div class="card-header-icon">
-                            <div class="icon-bubble" style="color: var(--green);"><i class="fas fa-file-invoice"></i></div>
-                            <span class="card-index">Mensal</span>
-                        </div>
-                        <h3>Extrato Mensal Consolidado</h3>
-                        <p>Histórico completo de quilometragem, horários de embarque/desembarque, vouchers e ticket médio por corrida.</p>
-                    </article>
-
-                    <article class="solution-card reveal" style="border-left: 4px solid #3b82f6;">
-                        <div class="card-glow"></div>
-                        <div class="card-header-icon">
-                            <div class="icon-bubble" style="color: #3b82f6;"><i class="fas fa-download"></i></div>
-                            <span class="card-index">Exportação</span>
-                        </div>
-                        <h3>Planilha Excel & PDF</h3>
-                        <p>Download instantâneo de planilhas .CSV auditáveis e emissão de relatórios timbrados para o departamento financeiro.</p>
-                    </article>
-                </div>
-
-                <div class="reveal" style="background: var(--white); border: 1px solid var(--line); border-radius: 20px; padding: 24px 30px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px; box-shadow: var(--shadow);">
-                    <div style="max-width: 650px;">
-                        <span class="app-badge-tag" style="background: var(--amber-soft); color: var(--amber); margin-bottom: 8px;"><i class="fas fa-lock"></i> Acesso Restrito & Protegido</span>
-                        <h3 style="font-size: 19px; font-weight: 800; margin-bottom: 6px; color: var(--ink);">Acesse a Central de Relatórios em Tempo Real</h3>
-                        <p style="font-size: 13px; color: var(--muted); margin: 0;">
-                            Consulte extratos em tempo real, aprove motoristas e passageiros, ou exporte relatórios filtrados por período e centro de custo.
-                        </p>
-                    </div>
-                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-                        <a href="admin.html#reports" class="btn btn-primary" style="background: var(--green); border-color: var(--green); padding: 12px 24px;">
-                            <i class="fas fa-file-invoice-dollar"></i> Abrir Painel de Relatórios
-                        </a>
-                        <a href="https://wa.me/5592984162443?text=Olá,%20gostaria%20de%20solicitar%20o%20relatório%20de%20corridas%20da%20minha%20empresa" target="_blank" class="hero-text-link" style="display: inline-flex; align-items: center; gap: 6px;">
-                            Solicitar via WhatsApp <i class="fab fa-whatsapp"></i>
-                        </a>
                     </div>
                 </div>
             </div>
