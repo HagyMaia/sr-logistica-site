@@ -179,6 +179,9 @@
               turno: "Turno Comercial",
               origem: "Site Oficial",
               status: "Pendente",
+              foto_status: "Pendente",
+              payment_preference: "VOUCHER",
+              voucher_habilitado: false,
               created_at: new Date().toISOString()
             }
           ]);
@@ -188,16 +191,19 @@
           }
 
           const zapMsg = encodeURIComponent(
-            `Olá Central SR Logística! Acabei de me cadastrar no site como passageiro (${nome}, Empresa: ${empresa}, Telefone: ${telefone}) e solicito liberação do meu acesso.`
+            `Olá Central SR Logística! Acabei de me cadastrar no site como passageiro (${nome}, Empresa: ${empresa}, Telefone: ${telefone}) e solicito liberação do meu Voucher Corporativo.`
           );
 
           if (passFeedback) {
             passFeedback.className = "pass-feedback success";
             passFeedback.innerHTML = `
-              <strong><i class="fas fa-circle-check"></i> Cadastro Salvo com Sucesso!</strong><br>
-              Seus dados foram enviados para homologação da SR Logística.<br><br>
+              <strong><i class="fas fa-circle-check"></i> Cadastro Enviado com Sucesso!</strong><br>
+              Seus dados foram enviados para homologação da SR Logística.<br>
+              <small style="display:block; margin:6px 0 8px; color:inherit; opacity:0.9;">
+                <i class="fas fa-circle-info"></i> O faturamento via <strong>Voucher Corporativo</strong> será ativado após validação administrativa. Viagens particulares via PIX já estão liberadas no aplicativo.
+              </small>
               <a href="https://wa.me/5592984162443?text=${zapMsg}" target="_blank" style="display:inline-block; margin-top:6px; background:#268269; color:#fff; padding:8px 16px; border-radius:8px; font-weight:700; text-decoration:none;">
-                <i class="fab fa-whatsapp"></i> Liberar Acesso Imediato via WhatsApp
+                <i class="fab fa-whatsapp"></i> Agilizar Homologação via WhatsApp
               </a>
             `;
           }

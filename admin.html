@@ -685,9 +685,19 @@
                 <i class="fas fa-mobile-screen"></i> Entrada via App Passageiro
             </div>
             <h2 id="passenger-modal-title" style="margin:0 0 6px; font-size:22px; letter-spacing:-.04em;">Novo Cadastro de Passageiro</h2>
-            <p style="color:#5f6d73; font-size:12px; margin:0 0 18px;">Simule a solicitação feita pelo colaborador através do aplicativo para testar a fila de aprovação do administrador.</p>
+            <p style="color:#5f6d73; font-size:12px; margin:0 0 18px;">Simule a solicitação feita pelo colaborador através do aplicativo para testar a fila de aprovação e homologação de voucher corporativo.</p>
 
             <form id="passenger-sim-form" novalidate>
+                <div style="display:flex; align-items:center; gap:16px; margin-bottom:18px; padding:12px; background:var(--paper); border-radius:10px; border:1px solid var(--line);">
+                    <div id="pass-modal-avatar-preview" style="width:54px; height:54px; border-radius:50%; background:var(--green-soft); color:var(--green); display:flex; align-items:center; justify-content:center; font-size:22px; overflow:hidden; flex-shrink:0; border:2px solid var(--green);">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div style="flex:1;">
+                        <label for="pass-photo-url" style="font-size:11px; font-weight:700; display:block; margin-bottom:4px;">Link / URL da Foto de Perfil (Avatar)</label>
+                        <input type="url" id="pass-photo-url" placeholder="https://exemplo.com/foto.jpg ou Base64" style="padding:7px 10px; font-size:12px;">
+                    </div>
+                </div>
+
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="pass-name">Nome Completo *</label>
@@ -732,9 +742,19 @@
                     </div>
                 </div>
 
-                <div class="form-group">
-                    <label for="pass-address">Ponto de Embarque / Endereço</label>
-                    <input type="text" id="pass-address" placeholder="Bairro / Rua / Ponto de referência">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="pass-address">Ponto de Embarque / Endereço</label>
+                        <input type="text" id="pass-address" placeholder="Bairro / Rua / Ponto de referência">
+                    </div>
+                    <div class="form-group">
+                        <label for="pass-photo-status">Status da Foto de Perfil</label>
+                        <select id="pass-photo-status">
+                            <option value="Pendente">Foto em Análise</option>
+                            <option value="Aprovada" selected>Foto Aprovada</option>
+                            <option value="Rejeitada">Foto Rejeitada (Solicitar Nova)</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="form-actions" style="margin-top:20px;">
@@ -789,10 +809,20 @@
                 <i class="fas fa-id-card"></i> Gestão da Frota & Parceiros
             </div>
             <h2 id="driver-modal-title" style="margin:0 0 6px; font-size:22px; letter-spacing:-.04em;">Cadastrar Novo Motorista</h2>
-            <p style="color:#5f6d73; font-size:12px; margin:0 0 18px;">Cadastre motoristas definindo a categoria operacional e o tipo de corridas autorizadas.</p>
+            <p style="color:#5f6d73; font-size:12px; margin:0 0 18px;">Cadastre motoristas definindo a foto de perfil, categoria operacional exclusiva e regra de corridas autorizadas.</p>
 
             <form id="driver-form" novalidate>
                 <input type="hidden" id="driver-modal-id" value="">
+
+                <div style="display:flex; align-items:center; gap:16px; margin-bottom:18px; padding:12px; background:var(--paper); border-radius:10px; border:1px solid var(--line);">
+                    <div id="driver-modal-avatar-preview" style="width:54px; height:54px; border-radius:50%; background:var(--amber-soft); color:#925c0a; display:flex; align-items:center; justify-content:center; font-size:22px; overflow:hidden; flex-shrink:0; border:2px solid var(--amber);">
+                        <i class="fas fa-id-card"></i>
+                    </div>
+                    <div style="flex:1;">
+                        <label for="driver-photo-url" style="font-size:11px; font-weight:700; display:block; margin-bottom:4px;">Link / URL da Foto de Perfil (Avatar)</label>
+                        <input type="url" id="driver-photo-url" placeholder="https://exemplo.com/foto-motorista.jpg ou Base64" style="padding:7px 10px; font-size:12px;">
+                    </div>
+                </div>
 
                 <div class="form-grid">
                     <div class="form-group">
@@ -817,14 +847,14 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="driver-category-select">Categoria Operacional & Regra de Corridas *</label>
+                    <label for="driver-category-select">Categoria Operacional & Regra de Corridas (Definição Exclusiva pelo Administrador) *</label>
                     <select id="driver-category-select" style="font-weight:700;">
                         <option value="particular">👤 Motorista Particular (Recebe os DOIS: Voucher e Corridas Particulares)</option>
-                        <option value="empresa">🏢 Frota Corporativa / Empresa (Recebe APENAS Corridas em Voucher)</option>
+                        <option value="empresa">🏢 Frota Corporativa / Empresa (Recebe EXCLUSIVAMENTE Corridas em Voucher)</option>
                     </select>
                     <small id="driver-category-help" style="display:block; margin-top:5px; font-size:11px; color:var(--ink-soft); line-height:1.4;">
-                        ℹ️ <strong>Particular:</strong> pode receber vouchers corporativos e corridas particulares em dinheiro/PIX/cartão.<br>
-                        ℹ️ <strong>Empresa:</strong> recebe exclusivamente vouchers corporativos faturados.
+                        ℹ️ <strong>Particular:</strong> pode receber vouchers corporativos faturados E corridas particulares em dinheiro/PIX/cartão.<br>
+                        ℹ️ <strong>Empresa:</strong> recebe exclusivamente vouchers corporativos faturados por convênio.
                     </small>
                 </div>
 
@@ -860,9 +890,18 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="driver-email">E-mail</label>
-                        <input type="email" id="driver-email" placeholder="motorista@exemplo.com">
+                        <label for="driver-photo-status">Status da Foto de Perfil</label>
+                        <select id="driver-photo-status">
+                            <option value="Aprovada" selected>Foto Aprovada</option>
+                            <option value="Pendente">Foto em Análise</option>
+                            <option value="Rejeitada">Foto Rejeitada</option>
+                        </select>
                     </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="driver-email">E-mail</label>
+                    <input type="email" id="driver-email" placeholder="motorista@exemplo.com">
                 </div>
 
                 <div class="form-actions" style="margin-top:20px; display:flex; gap:10px; justify-content:flex-end;">
@@ -959,6 +998,43 @@
                 </div>
                 <div id="company-feedback" class="feedback-msg" aria-live="polite"></div>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal de Visualização & Homologação de Foto de Perfil (NOVO) -->
+    <div id="photo-preview-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="photo-preview-title">
+        <div class="modal-card" style="max-width:460px; text-align:center;">
+            <button id="close-photo-modal" class="toggle-password" style="position:absolute; right:16px; top:16px; font-size:18px; cursor:pointer;" aria-label="Fechar modal">
+                <i class="fas fa-xmark"></i>
+            </button>
+            <div class="eyebrow" style="margin-bottom:6px;">
+                <i class="fas fa-camera"></i> Inspeção de Foto de Perfil
+            </div>
+            <h2 id="photo-preview-name" style="margin:0 0 4px; font-size:20px; letter-spacing:-.04em;">Nome do Usuário</h2>
+            <p id="photo-preview-role" style="color:var(--ink-soft); font-size:12px; margin:0 0 16px;">Passageiro / Motorista</p>
+
+            <div class="photo-preview-frame" style="position:relative; width:220px; height:220px; margin:0 auto 18px; border-radius:50%; overflow:hidden; border:4px solid var(--amber); box-shadow:0 10px 30px rgba(0,0,0,0.15); background:var(--paper);">
+                <img id="photo-preview-img" src="" alt="Foto de perfil" style="width:100%; height:100%; object-fit:cover; display:block;">
+                <div id="photo-preview-placeholder" class="hidden" style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:4rem; color:var(--ink-soft); font-weight:800;">
+                    --
+                </div>
+            </div>
+
+            <div id="photo-preview-status-badge" style="margin-bottom:16px;">
+                <span class="photo-status-badge pending"><i class="fas fa-clock"></i> Foto em Análise</span>
+            </div>
+
+            <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:14px;">
+                <button type="button" class="btn btn-primary" id="btn-approve-photo" style="width:auto; background:var(--green); color:#fff;">
+                    <i class="fas fa-check"></i> Aprovar Foto
+                </button>
+                <button type="button" class="btn btn-secondary" id="btn-reject-photo" style="width:auto; color:var(--red); border-color:var(--red);">
+                    <i class="fas fa-ban"></i> Reprovar Foto
+                </button>
+                <button type="button" class="btn btn-secondary" id="btn-close-photo-view" style="width:auto;">
+                    Fechar
+                </button>
+            </div>
         </div>
     </div>
 

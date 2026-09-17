@@ -18,13 +18,24 @@ CREATE TABLE IF NOT EXISTS public.passageiros (
   matricula text,
   turno text,
   endereco text,
+  foto_url text,
+  avatar_url text,
+  foto_status text DEFAULT 'Pendente',               -- 'Pendente', 'Aprovada', 'Rejeitada'
+  payment_preference text DEFAULT 'VOUCHER',         -- 'VOUCHER', 'PIX', 'DINHEIRO', 'CARTAO'
+  voucher_habilitado boolean DEFAULT false,          -- Liberado automaticamente quando status = 'Aprovado'
   origem text DEFAULT 'App Passageiro',
-  status text NOT NULL DEFAULT 'Pendente', -- 'Pendente', 'Aprovado', 'Reprovado'
+  status text NOT NULL DEFAULT 'Pendente',            -- 'Pendente' (Aguardando aprovação - somente PIX), 'Aprovado' (Voucher Liberado), 'Reprovado'
   motivo_rejeicao text,
   observacoes text,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now())
 );
+
+ALTER TABLE public.passageiros ADD COLUMN IF NOT EXISTS foto_url text;
+ALTER TABLE public.passageiros ADD COLUMN IF NOT EXISTS avatar_url text;
+ALTER TABLE public.passageiros ADD COLUMN IF NOT EXISTS foto_status text DEFAULT 'Pendente';
+ALTER TABLE public.passageiros ADD COLUMN IF NOT EXISTS payment_preference text DEFAULT 'VOUCHER';
+ALTER TABLE public.passageiros ADD COLUMN IF NOT EXISTS voucher_habilitado boolean DEFAULT false;
 
 -- Habilitar RLS (Row Level Security)
 ALTER TABLE public.passageiros ENABLE ROW LEVEL SECURITY;

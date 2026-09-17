@@ -79,3 +79,113 @@ textarea { min-height: 125px; resize: vertical; }
 @media (max-width: 700px) { .sidebar { box-shadow: 10px 0 30px rgba(0,0,0,.12); left: 0; position: fixed; top: 0; transform: translateX(-100%); transition: transform .25s; z-index: 10; }.sidebar.open { transform: translateX(0); }.dashboard-main { padding: 0 16px 35px; }.topbar { min-height: 82px; }.mobile-menu { display: block; }.topbar > div:nth-child(2) { margin-right: auto; }.topbar-kicker { font-size: 8px; }.topbar h1 { font-size: 19px; }.status-dot { display: none; }.welcome-panel { padding: 25px 21px; }.welcome-panel h2 { font-size: 21px; }.welcome-mark { height: 55px; margin-right: 0; width: 55px; }.metric-grid, .metric-grid-4 { gap: 9px; grid-template-columns: 1fr 1fr; }.metric-card { min-height: 118px; padding: 15px 13px; }.metric-label { font-size: 9px; line-height: 1.3; }.metric-card strong { font-size: 26px; margin: 13px 0 9px; }.metric-note { font-size: 8px; }.page-heading { align-items: flex-start; flex-direction: column; gap: 16px; }.page-heading h2 { font-size: 23px; }.form-grid, .driver-grid { grid-template-columns: 1fr; }.login-card { padding: 31px 24px; }.modal-card { padding: 24px 18px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: .01ms !important; } }
 
+/* --- NOVOS ESTILOS: FOTO DE PERFIL & APROVAÇÕES --- */
+.user-avatar-cell {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+.user-avatar-cell:hover {
+    transform: scale(1.08);
+    box-shadow: 0 4px 12px rgba(0,0,0,.15);
+}
+.avatar-img-thumb {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    border: 2px solid var(--green);
+    background: #fff;
+}
+.avatar-img-thumb.driver {
+    border-color: var(--amber);
+}
+.avatar-initials-thumb {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 800;
+    background: var(--green-soft);
+    color: var(--green);
+    border: 2px solid var(--green);
+}
+.avatar-initials-thumb.driver {
+    background: var(--amber-soft);
+    color: #925c0a;
+    border-color: var(--amber);
+}
+.avatar-zoom-badge {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 16px;
+    height: 16px;
+    background: var(--navy);
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    border: 1px solid #fff;
+}
+
+/* Badges de Status de Foto */
+.photo-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 3px 7px;
+    border-radius: 6px;
+}
+.photo-status-badge.pending {
+    background: #fffbeb;
+    color: #b45309;
+    border: 1px solid #fde68a;
+}
+.photo-status-badge.approved {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+}
+.photo-status-badge.rejected {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+
+/* Badges de Liberação de Voucher Corporativo */
+.voucher-status-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 6px;
+    margin-top: 4px;
+}
+.voucher-status-tag.unlocked {
+    background: #e6f6ee;
+    color: #0f764e;
+    border: 1px solid #b4e8cf;
+}
+.voucher-status-tag.locked {
+    background: #fff8e6;
+    color: #b46d0a;
+    border: 1px solid #fde293;
+}
+

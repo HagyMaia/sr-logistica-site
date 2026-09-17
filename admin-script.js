@@ -75,8 +75,230 @@ document.addEventListener("DOMContentLoaded", () => {
   setupCompanyModal();
   setupCompanyFilters();
   setupReportsView();
+  setupPhotoModal();
   checkSession();
 });
+
+// --- GESTÃO E INSPEÇÃO DE FOTOS DE PERFIL (AVATARES) ---
+let currentPhotoInspection = {
+  id: null,
+  type: null, // 'passenger' | 'driver'
+  url: null,
+  name: null,
+  status: "Pendente"
+};
+
+function getAvatarUrl(item) {
+  if (!item) return null;
+  return (
+    item.foto_url ||
+    item.avatar_url ||
+    item.avatar ||
+    item.foto ||
+    (item.user_metadata && item.user_metadata.avatar_url) ||
+    null
+  );
+}
+
+function renderAvatarHTML(item, type = "passenger") {
+  const photoUrl = getAvatarUrl(item);
+  const name =
+    item.nome_social ||
+    item.nome ||
+    item.name ||
+    (type === "driver" ? "Motorista" : "Passageiro");
+  const initial = (name || "U").charAt(0).toUpperCase();
+  const isDriver = type === "driver";
+  const roleLabel = isDriver
+    ? `Motorista (${item.categoria_tipo === "empresa" || item.categoria === "Empresa" ? "Frota Empresa" : "Particular"})`
+    : `Passageiro (${item.empresa || "SR Convênio"})`;
+  const photoStatus = item.foto_status || (photoUrl ? "Aprovada" : "Pendente");
+  const itemId = item.id || "";
+
+  // Escapar para uso em atributos inline onclick
+  const safeName = String(name).replace(/'/g, "\\'");
+  const safeRole = String(roleLabel).replace(/'/g, "\\'");
+  const safeUrl = photoUrl ? String(photoUrl).replace(/'/g, "\\'") : "";
+  const safeStatus = String(photoStatus).replace(/'/g, "\\'");
+
+  if (photoUrl) {
+    return `
+      <div class="user-avatar-cell" onclick="openPhotoPreview('${itemId}', '${type}', '${safeName}', '${safeRole}', '${safeUrl}', '${safeStatus}')" title="Clique para inspecionar foto de perfil ampliada">
+        <img src="${escapeHtml(photoUrl)}" class="avatar-img-thumb ${isDriver ? 'driver' : ''}" alt="${escapeHtml(name)}" onerror="this.style.display='none'; this.nextElementSibling.classList.remove('hidden');">
+        <div class="avatar-initials-thumb ${isDriver ? 'driver' : ''} hidden">${initial}</div>
+        <div class="avatar-zoom-badge"><i class="fas fa-magnifying-glass"></i></div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="user-avatar-cell" onclick="openPhotoPreview('${itemId}', '${type}', '${safeName}', '${safeRole}', '', '${safeStatus}')" title="Perfil sem foto carregada (iniciais)">
+      <div class="avatar-initials-thumb ${isDriver ? 'driver' : ''}">${initial}</div>
+      <div class="avatar-zoom-badge"><i class="fas fa-user"></i></div>
+    </div>
+  `;
+}
+
+window.openPhotoPreview = function (id, type, name, role, photoUrl, photoStatus) {
+  const modal = document.getElementById("photo-preview-modal");
+  if (!modal) return;
+
+  currentPhotoInspection = {
+    id: id,
+    type: type,
+    url: photoUrl || "",
+    name: name || "Usuário",
+    status: photoStatus || "Pendente"
+  };
+
+  const nameEl = document.getElementById("photo-preview-name");
+  const roleEl = document.getElementById("photo-preview-role");
+  const imgEl = document.getElementById("photo-preview-img");
+  const placeholderEl = document.getElementById("photo-preview-placeholder");
+  const statusBadge = document.getElementById("photo-preview-status-badge");
+
+  if (nameEl) nameEl.textContent = name;
+  if (roleEl) roleEl.textContent = role;
+
+  if (photoUrl && photoUrl.trim() !== "") {
+    if (imgEl) {
+      imgEl.src = photoUrl;
+      imgEl.classList.remove("hidden");
+    }
+    if (placeholderEl) placeholderEl.classList.add("hidden");
+  } else {
+    if (imgEl) imgEl.classList.add("hidden");
+    if (placeholderEl) {
+      placeholderEl.textContent = (name || "U").charAt(0).toUpperCase();
+      placeholderEl.classList.remove("hidden");
+    }
+  }
+
+  if (statusBadge) {
+    const isApproved = photoStatus === "Aprovada";
+    const isRejected = photoStatus === "Rejeitada";
+    statusBadge.innerHTML = `
+      <span class="photo-status-badge ${isApproved ? 'approved' : isRejected ? 'rejected' : 'pending'}">
+        <i class="fas ${isApproved ? 'fa-check-circle' : isRejected ? 'fa-circle-xmark' : 'fa-clock'}"></i>
+        ${isApproved ? 'Foto Homologada' : isRejected ? 'Foto Reprovada' : 'Foto em Análise / Aguardando Aprovação'}
+      </span>
+    `;
+  }
+
+  modal.classList.remove("hidden");
+};
+
+function setupPhotoModal() {
+  const modal = document.getElementById("photo-preview-modal");
+  const closeBtn = document.getElementById("close-photo-modal");
+  const closeViewBtn = document.getElementById("btn-close-photo-view");
+  const approveBtn = document.getElementById("btn-approve-photo");
+  const rejectBtn = document.getElementById("btn-reject-photo");
+
+  const closeModal = () => {
+    if (modal) modal.classList.add("hidden");
+  };
+
+  if (closeBtn) closeBtn.addEventListener("click", closeModal);
+  if (closeViewBtn) closeViewBtn.addEventListener("click", closeModal);
+  if (modal) {
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) closeModal();
+    });
+  }
+
+  if (approveBtn) {
+    approveBtn.addEventListener("click", async () => {
+      if (!currentPhotoInspection.id) return;
+      const { id, type } = currentPhotoInspection;
+      try {
+        if (type === "passenger") {
+          const p = passageirosCache.find((item) => String(item.id) === String(id));
+          if (p) {
+            p.foto_status = "Aprovada";
+            p.updated_at = new Date().toISOString();
+          }
+          localStorage.setItem("sr_passageiros_cache", JSON.stringify(passageirosCache));
+          if (supabaseClient) {
+            await supabaseClient
+              .from("passageiros")
+              .update({ foto_status: "Aprovada", updated_at: new Date().toISOString() })
+              .eq("id", id);
+          }
+          renderOverviewApprovals();
+          renderPassengerApprovals();
+          renderPassengersBase();
+        } else {
+          const m = motoristasCache.find((item) => String(item.id) === String(id));
+          if (m) {
+            m.foto_status = "Aprovada";
+            m.updated_at = new Date().toISOString();
+          }
+          localStorage.setItem("sr_motoristas_cache", JSON.stringify(motoristasCache));
+          if (supabaseClient) {
+            await supabaseClient
+              .from("motoristas")
+              .update({ foto_status: "Aprovada", updated_at: new Date().toISOString() })
+              .eq("id", id);
+          }
+          renderOverviewApprovals();
+          renderApprovals();
+          renderDrivers();
+        }
+        showNotification("Foto de perfil homologada com sucesso!", "success");
+        closeModal();
+      } catch (err) {
+        showNotification("Erro ao homologar foto: " + err.message, "error");
+      }
+    });
+  }
+
+  if (rejectBtn) {
+    rejectBtn.addEventListener("click", async () => {
+      if (!currentPhotoInspection.id) return;
+      const { id, type } = currentPhotoInspection;
+      try {
+        if (type === "passenger") {
+          const p = passageirosCache.find((item) => String(item.id) === String(id));
+          if (p) {
+            p.foto_status = "Rejeitada";
+            p.updated_at = new Date().toISOString();
+          }
+          localStorage.setItem("sr_passageiros_cache", JSON.stringify(passageirosCache));
+          if (supabaseClient) {
+            await supabaseClient
+              .from("passageiros")
+              .update({ foto_status: "Rejeitada", updated_at: new Date().toISOString() })
+              .eq("id", id);
+          }
+          renderOverviewApprovals();
+          renderPassengerApprovals();
+          renderPassengersBase();
+        } else {
+          const m = motoristasCache.find((item) => String(item.id) === String(id));
+          if (m) {
+            m.foto_status = "Rejeitada";
+            m.updated_at = new Date().toISOString();
+          }
+          localStorage.setItem("sr_motoristas_cache", JSON.stringify(motoristasCache));
+          if (supabaseClient) {
+            await supabaseClient
+              .from("motoristas")
+              .update({ foto_status: "Rejeitada", updated_at: new Date().toISOString() })
+              .eq("id", id);
+          }
+          renderOverviewApprovals();
+          renderApprovals();
+          renderDrivers();
+        }
+        showNotification("Foto de perfil reprovada.", "warning");
+        closeModal();
+      } catch (err) {
+        showNotification("Erro ao reprovar foto: " + err.message, "error");
+      }
+    });
+  }
+}
 
 // --- AUTENTICAÇÃO ---
 async function checkSession() {
@@ -647,23 +869,28 @@ function renderOverviewApprovals() {
       (p.empresa || "Empresa não inf.") +
       (p.setor ? " · " + p.setor : "") +
       (p.telefone ? " · " + p.telefone : "");
+    const photoStatus = p.foto_status || "Pendente";
 
     html += `
       <div class="approval-row" style="display:flex; justify-content:space-between; align-items:center; padding:12px; border-bottom:1px solid var(--line);">
         <div style="display:flex; align-items:center; gap:12px;">
-          <div class="person-avatar" style="background:var(--green-soft); color:var(--green);">
-            <i class="fas fa-user"></i>
-          </div>
+          ${renderAvatarHTML(p, "passenger")}
           <div>
-            <div style="display:flex; align-items:center; gap:6px;">
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
               <strong>${escapeHtml(name)}</strong>
               <span class="tag-company">${escapeHtml(p.empresa || "Passageiro")}</span>
+              <span class="photo-status-badge ${photoStatus === 'Aprovada' ? 'approved' : photoStatus === 'Rejeitada' ? 'rejected' : 'pending'}">
+                <i class="fas fa-camera"></i> ${photoStatus === 'Aprovada' ? 'Foto OK' : photoStatus === 'Rejeitada' ? 'Foto Reprovada' : 'Foto Pendente'}
+              </span>
             </div>
             <small style="color:var(--ink-soft);">${escapeHtml(subInfo)}</small>
+            <div>
+              <span class="voucher-status-tag locked"><i class="fas fa-clock"></i> Aguardando Liberação de Voucher (PIX Liberado)</span>
+            </div>
           </div>
         </div>
-        <div style="display:flex; gap:6px;">
-          <button class="btn btn-primary" style="padding:5px 10px; font-size:11px; min-height:28px; width:auto;" onclick="approvePassenger('${p.id}')">
+        <div style="display:flex; gap:6px; flex-shrink:0;">
+          <button class="btn btn-primary" style="padding:5px 10px; font-size:11px; min-height:28px; width:auto;" onclick="approvePassenger('${p.id}')" title="Aprovar passageiro e liberar Voucher Corporativo">
             <i class="fas fa-check"></i> Aprovar
           </button>
           <button class="btn btn-secondary" style="padding:5px 8px; font-size:11px; min-height:28px;" onclick="rejectPassenger('${p.id}')" title="Desativar / Reprovar">
@@ -687,22 +914,27 @@ function renderOverviewApprovals() {
       " (" +
       (m.placa_veiculo || "—") +
       ")";
+    const isEmpresa = m.categoria_tipo === "empresa" || m.categoria === "Empresa";
+    const photoStatus = m.foto_status || "Pendente";
 
     html += `
       <div class="approval-row" style="display:flex; justify-content:space-between; align-items:center; padding:12px; border-bottom:1px solid var(--line);">
         <div style="display:flex; align-items:center; gap:12px;">
-          <div class="person-avatar">
-            <i class="fas fa-id-card"></i>
-          </div>
+          ${renderAvatarHTML(m, "driver")}
           <div>
-            <div style="display:flex; align-items:center; gap:6px;">
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
               <strong>${escapeHtml(displayName)}</strong>
-              <span class="tag-dept">Motorista</span>
+              <span class="${isEmpresa ? 'tag-category-empresa' : 'tag-category-particular'}">
+                <i class="fas ${isEmpresa ? 'fa-building' : 'fa-user'}"></i> ${isEmpresa ? 'Frota Empresa' : 'Particular'}
+              </span>
+              <span class="photo-status-badge ${photoStatus === 'Aprovada' ? 'approved' : photoStatus === 'Rejeitada' ? 'rejected' : 'pending'}">
+                <i class="fas fa-camera"></i> ${photoStatus === 'Aprovada' ? 'Foto OK' : photoStatus === 'Rejeitada' ? 'Foto Reprovada' : 'Foto Pendente'}
+              </span>
             </div>
             <small style="color:var(--ink-soft);">${escapeHtml(carInfo)}</small>
           </div>
         </div>
-        <div style="display:flex; gap:6px;">
+        <div style="display:flex; gap:6px; flex-shrink:0;">
           <button class="btn btn-primary" style="padding:5px 10px; font-size:11px; min-height:28px; width:auto;" onclick="approveDriver('${m.id}')">
             <i class="fas fa-check"></i> Aprovar
           </button>
@@ -816,12 +1048,13 @@ function renderPassengerApprovals() {
     <table class="approval-table" style="width:100%; border-collapse:collapse; text-align:left;">
       <thead>
         <tr>
+          <th style="width:50px;">Foto</th>
           <th>Passageiro / Nome</th>
           <th>Contato & E-mail</th>
           <th>Empresa & Setor</th>
           <th>Turno / Matrícula</th>
-          <th>Origem & Data</th>
-          <th>Status</th>
+          <th>Status do Voucher</th>
+          <th>Status Geral</th>
           <th style="text-align:right;">Ações</th>
         </tr>
       </thead>
@@ -831,6 +1064,7 @@ function renderPassengerApprovals() {
   list.forEach((p) => {
     const isPending = p.status === "Pendente";
     const isApproved = p.status === "Aprovado";
+    const photoStatus = p.foto_status || "Pendente";
     const dateFormatted = p.created_at
       ? new Intl.DateTimeFormat("pt-BR", {
           day: "2-digit",
@@ -846,8 +1080,16 @@ function renderPassengerApprovals() {
 
     html += `
       <tr style="border-bottom:1px solid var(--line); font-size:13px;">
+        <td style="padding:12px 14px; text-align:center;">
+          ${renderAvatarHTML(p, "passenger")}
+        </td>
         <td style="padding:14px 16px;">
-          <strong>${escapeHtml(p.nome_social || p.nome)}</strong>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <strong>${escapeHtml(p.nome_social || p.nome)}</strong>
+            <span class="photo-status-badge ${photoStatus === 'Aprovada' ? 'approved' : photoStatus === 'Rejeitada' ? 'rejected' : 'pending'}">
+              <i class="fas fa-camera"></i> ${photoStatus === 'Aprovada' ? 'Foto Aprovada' : photoStatus === 'Rejeitada' ? 'Foto Reprovada' : 'Foto em Análise'}
+            </span>
+          </div>
           <small style="color:var(--ink-soft); display:block;">${escapeHtml(p.nome_completo || p.nome || "")}</small>
           <small style="color:#788b90; display:block;">CPF: ${escapeHtml(p.cpf || "Não inf.")}</small>
         </td>
@@ -868,20 +1110,26 @@ function renderPassengerApprovals() {
           ${p.endereco ? `<small style="color:#788b90; display:block; margin-top:2px;" title="${escapeHtml(p.endereco)}"><i class="fas fa-location-dot"></i> ${escapeHtml(p.endereco.slice(0, 25))}${p.endereco.length > 25 ? "..." : ""}</small>` : ""}
         </td>
         <td style="padding:14px 16px;">
-          <span style="font-size:11px; font-weight:600; color:#475569;"><i class="fas fa-mobile-screen"></i> ${escapeHtml(p.origem || "App")}</span>
-          <small style="color:var(--ink-soft); display:block;">${dateFormatted}</small>
+          ${
+            isApproved
+              ? `<span class="voucher-status-tag unlocked"><i class="fas fa-ticket"></i> Voucher Liberado (Padrão)</span>`
+              : isPending
+              ? `<span class="voucher-status-tag locked"><i class="fas fa-clock"></i> Em Análise (Apenas PIX)</span>`
+              : `<span class="voucher-status-tag locked" style="background:#fee2e2; color:#b91c1c; border-color:#fca5a5;"><i class="fas fa-ban"></i> Acesso Bloqueado</span>`
+          }
         </td>
         <td style="padding:14px 16px;">
           <span class="status-badge ${isPending ? "pending" : isApproved ? "approved" : "rejected"}">
             ${escapeHtml(p.status)}
           </span>
+          <small style="color:var(--ink-soft); display:block; font-size:10px; margin-top:3px;">${dateFormatted}</small>
         </td>
         <td style="padding:14px 16px; text-align:right; white-space:nowrap;">
           ${
             isPending
               ? `
-              <button class="btn btn-primary" style="padding:5px 11px; font-size:11px; margin-right:4px; width:auto; min-height:30px;" onclick="approvePassenger('${p.id}')">
-                <i class="fas fa-check"></i> Aprovar
+              <button class="btn btn-primary" style="padding:5px 11px; font-size:11px; margin-right:4px; width:auto; min-height:30px;" onclick="approvePassenger('${p.id}')" title="Homologar e liberar Voucher Corporativo">
+                <i class="fas fa-check"></i> Homologar
               </button>
               <button class="btn btn-secondary" style="padding:5px 8px; font-size:11px; min-height:30px; margin-right:4px;" onclick="rejectPassenger('${p.id}')" title="Reprovar">
                 <i class="fas fa-ban"></i>
@@ -896,7 +1144,7 @@ function renderPassengerApprovals() {
               </button>
               ${
                 !isApproved
-                  ? `<button class="btn btn-primary" style="padding:4px 8px; font-size:11px; width:auto; min-height:28px;" onclick="approvePassenger('${p.id}')">Reativar</button>`
+                  ? `<button class="btn btn-primary" style="padding:4px 8px; font-size:11px; width:auto; min-height:28px;" onclick="approvePassenger('${p.id}')">Reativar & Liberar Voucher</button>`
                   : ""
               }
             `
@@ -935,21 +1183,26 @@ function renderPassengersBase() {
 
   let html = "";
   ativos.forEach((p) => {
-    const initial = (p.nome_social || p.nome || "P").charAt(0).toUpperCase();
     const cleanPhone = (p.telefone || "").replace(/\D/g, "");
     const waLink = cleanPhone ? `https://wa.me/55${cleanPhone}` : null;
+    const photoStatus = p.foto_status || "Aprovada";
 
     html += `
       <div class="driver-card" style="background:var(--white); border:1px solid var(--line); border-radius:var(--radius); padding:18px;">
         <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
-          <div style="width:42px; height:42px; border-radius:10px; background:var(--green-soft); color:var(--green); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:16px;">
-            ${initial}
-          </div>
-          <div>
-            <strong style="font-size:14px; display:block;">${escapeHtml(p.nome_social || p.nome)}</strong>
+          ${renderAvatarHTML(p, "passenger")}
+          <div style="flex:1; min-width:0;">
+            <strong style="font-size:14px; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(p.nome_social || p.nome)}</strong>
             <small style="font-size:11px; color:var(--ink-soft);">${escapeHtml(p.nome_completo || "")}</small>
           </div>
-          <span class="status-badge approved" style="margin-left:auto;">Ativo</span>
+          <span class="status-badge approved" style="margin-left:auto;">Homologado</span>
+        </div>
+
+        <div style="margin-bottom:10px;">
+          <span class="voucher-status-tag unlocked"><i class="fas fa-ticket"></i> Voucher Corporativo Liberado</span>
+          <span class="photo-status-badge ${photoStatus === 'Aprovada' ? 'approved' : photoStatus === 'Rejeitada' ? 'rejected' : 'pending'}" style="margin-left:4px;">
+            <i class="fas fa-camera"></i> ${photoStatus === 'Aprovada' ? 'Foto Aprovada' : photoStatus === 'Rejeitada' ? 'Foto Reprovada' : 'Foto Pendente'}
+          </span>
         </div>
 
         <div style="border-top:1px solid var(--line); padding-top:12px; font-size:12px; color:var(--ink); line-height:1.7;">
@@ -967,8 +1220,8 @@ function renderPassengersBase() {
         <div style="border-top:1px solid var(--line); margin-top:14px; padding-top:10px; display:flex; justify-content:space-between; align-items:center;">
           <small style="color:#788b90; font-size:10px;">Origem: ${escapeHtml(p.origem || "App Passageiro")}</small>
           <div style="display:flex; gap:6px;">
-            <button class="btn btn-secondary" style="padding:3px 8px; font-size:11px; min-height:26px;" onclick="rejectPassenger('${p.id}')" title="Suspender / Desativar acesso">
-              <i class="fas fa-ban" style="color:#be7b20;"></i> Desativar
+            <button class="btn btn-secondary" style="padding:3px 8px; font-size:11px; min-height:26px;" onclick="rejectPassenger('${p.id}')" title="Suspender / Desativar acesso ao voucher">
+              <i class="fas fa-ban" style="color:#be7b20;"></i> Suspender
             </button>
             <button class="btn btn-secondary" style="padding:3px 8px; font-size:11px; min-height:26px;" onclick="deletePassenger('${p.id}')" title="Excluir cadastro permanentemente">
               <i class="fas fa-trash-can" style="color:var(--red);"></i> Excluir
@@ -984,14 +1237,19 @@ function renderPassengersBase() {
 
 // --- FUNÇÕES DE APROVAÇÃO & GESTÃO DE PASSAGEIROS ---
 window.approvePassenger = async function (id) {
-  if (!confirm("Deseja homologar e aprovar o acesso deste passageiro às rotas?"))
+  if (!confirm("Deseja homologar o passageiro e liberar o acesso a Voucher Corporativo nas viagens?"))
     return;
 
   try {
     if (supabaseClient) {
       const { error } = await supabaseClient
         .from("passageiros")
-        .update({ status: "Aprovado", updated_at: new Date().toISOString() })
+        .update({
+          status: "Aprovado",
+          foto_status: "Aprovada",
+          voucher_habilitado: true,
+          updated_at: new Date().toISOString()
+        })
         .eq("id", id);
 
       if (error && error.code !== "PGRST205") throw error;
@@ -999,16 +1257,21 @@ window.approvePassenger = async function (id) {
 
     // Atualiza cache local
     const item = passageirosCache.find((p) => String(p.id) === String(id));
-    if (item) item.status = "Aprovado";
+    if (item) {
+      item.status = "Aprovado";
+      item.foto_status = "Aprovada";
+      item.voucher_habilitado = true;
+      item.updated_at = new Date().toISOString();
+    }
     localStorage.setItem(
       "sr_passageiros_cache",
       JSON.stringify(passageirosCache),
     );
 
-    showNotification("Passageiro aprovado com sucesso!", "success");
+    showNotification("Passageiro homologado com sucesso! Acesso a Voucher Corporativo liberado.", "success");
     await loadPassageiros();
   } catch (err) {
-    showNotification("Erro ao aprovar passageiro: " + err.message, "error");
+    showNotification("Erro ao homologar passageiro: " + err.message, "error");
   }
 };
 
@@ -1025,6 +1288,7 @@ window.rejectPassenger = async function (id) {
         .from("passageiros")
         .update({
           status: "Reprovado",
+          voucher_habilitado: false,
           motivo_rejeicao: reason,
           updated_at: new Date().toISOString(),
         })
@@ -1037,7 +1301,9 @@ window.rejectPassenger = async function (id) {
     const item = passageirosCache.find((p) => String(p.id) === String(id));
     if (item) {
       item.status = "Reprovado";
+      item.voucher_habilitado = false;
       item.motivo_rejeicao = reason;
+      item.updated_at = new Date().toISOString();
     }
     localStorage.setItem(
       "sr_passageiros_cache",
@@ -1087,6 +1353,19 @@ function setupPassengerModal() {
   const btnClose = document.getElementById("close-passenger-modal");
   const form = document.getElementById("passenger-sim-form");
   const feedback = document.getElementById("passenger-sim-feedback");
+  const photoUrlInput = document.getElementById("pass-photo-url");
+  const photoPreview = document.getElementById("pass-modal-avatar-preview");
+
+  if (photoUrlInput && photoPreview) {
+    photoUrlInput.addEventListener("input", (e) => {
+      const url = e.target.value.trim();
+      if (url) {
+        photoPreview.innerHTML = `<img src="${url}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" onerror="this.parentElement.innerHTML='<i class=\\'fas fa-user\\'></i>'">`;
+      } else {
+        photoPreview.innerHTML = `<i class="fas fa-user"></i>`;
+      }
+    });
+  }
 
   const openModal = () => {
     if (modal) modal.classList.remove("hidden");
@@ -1094,6 +1373,7 @@ function setupPassengerModal() {
       feedback.textContent = "";
       feedback.className = "feedback-msg";
     }
+    if (photoPreview) photoPreview.innerHTML = `<i class="fas fa-user"></i>`;
   };
 
   const closeModal = () => {
@@ -1115,6 +1395,8 @@ function setupPassengerModal() {
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
 
+      const photoUrl = document.getElementById("pass-photo-url")?.value.trim();
+      const photoStatus = document.getElementById("pass-photo-status")?.value || (photoUrl ? "Aprovada" : "Pendente");
       const name = document.getElementById("pass-name")?.value.trim();
       const social = document.getElementById("pass-social")?.value.trim();
       const phone = document.getElementById("pass-phone")?.value.trim();
@@ -1135,6 +1417,11 @@ function setupPassengerModal() {
 
       const newPassenger = {
         id: "pass-" + Date.now(),
+        foto_url: photoUrl || null,
+        avatar_url: photoUrl || null,
+        foto_status: photoStatus,
+        payment_preference: "VOUCHER",
+        voucher_habilitado: false,
         nome: social || name,
         nome_social: social || name.split(" ")[0],
         nome_completo: name,
@@ -1251,10 +1538,11 @@ function renderApprovals() {
     return;
   }
 
-  let html =
+    let html =
     '<table class="approval-table" style="width:100%; text-align:left; border-collapse:collapse;">';
   html +=
     '<thead><tr style="border-bottom:1px solid rgba(255,255,255,0.15); font-size:12px; color:#94a3b8;">';
+  html += '<th style="padding:10px; width:50px;">Foto</th>';
   html += '<th style="padding:10px;">Como deseja ser chamado / Nome</th>';
   html += '<th style="padding:10px;">Contato</th>';
   html += '<th style="padding:10px;">Veículo & Placa</th>';
@@ -1272,13 +1560,21 @@ function renderApprovals() {
       m.status === "Pendente" || m.vehicle_status === "Pendente";
     const isApproved = m.status === "Aprovado";
     const isEmpresa = m.categoria_tipo === "empresa" || m.categoria === "Empresa";
+    const photoStatus = m.foto_status || "Pendente";
 
     html +=
       '<tr style="border-bottom:1px solid var(--line); font-size:13px;">';
     html +=
-      '  <td style="padding:10px;"><strong>' +
+      '  <td style="padding:10px; text-align:center;">' +
+      renderAvatarHTML(m, "driver") +
+      '  </td>';
+    html +=
+      '  <td style="padding:10px;"><div style="display:flex; align-items:center; gap:6px;"><strong>' +
       escapeHtml(m.nome_social || m.nome) +
-      '</strong><br><small style="color:var(--ink-soft);">' +
+      '</strong>' +
+      '<span class="photo-status-badge ' + (photoStatus === 'Aprovada' ? 'approved' : photoStatus === 'Rejeitada' ? 'rejected' : 'pending') + '"><i class="fas fa-camera"></i> ' +
+      (photoStatus === 'Aprovada' ? 'Foto OK' : photoStatus === 'Rejeitada' ? 'Foto Reprovada' : 'Foto Pendente') +
+      '</span></div><small style="color:var(--ink-soft);">' +
       escapeHtml(m.nome_completo || m.nome || "") +
       '</small><br><small style="color:#788b90">CPF: ' +
       escapeHtml(m.cpf || "—") +
@@ -1387,15 +1683,13 @@ function renderDrivers() {
   let html = "";
   for (let i = 0; i < ativos.length; i++) {
     const m = ativos[i];
-    const initial = (m.nome_social || m.nome || "M").charAt(0).toUpperCase();
     const isEmpresa = m.categoria_tipo === "empresa" || m.categoria === "Empresa";
+    const photoStatus = m.foto_status || "Aprovada";
 
     html += `
       <div class="driver-card" style="background:var(--white); border:1px solid var(--line); border-radius:var(--radius); padding:18px;">
         <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
-          <div style="width:40px; height:40px; border-radius:10px; background:var(--amber-soft); color:#925c0a; display:flex; align-items:center; justify-content:center; font-weight:bold;">
-            ${initial}
-          </div>
+          ${renderAvatarHTML(m, "driver")}
           <div style="flex:1; min-width:0;">
             <strong style="font-size:14px; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(m.nome_social || m.nome)}</strong>
             <small style="font-size:11px; color:var(--ink-soft);">${escapeHtml(m.nome_completo || "")}</small>
@@ -1404,6 +1698,13 @@ function renderDrivers() {
             <i class="fas ${isEmpresa ? 'fa-building' : 'fa-user'}"></i> ${isEmpresa ? 'Frota Empresa' : 'Particular'}
           </span>
         </div>
+
+        <div style="margin-bottom:8px;">
+          <span class="photo-status-badge ${photoStatus === 'Aprovada' ? 'approved' : photoStatus === 'Rejeitada' ? 'rejected' : 'pending'}">
+            <i class="fas fa-camera"></i> ${photoStatus === 'Aprovada' ? 'Foto Aprovada' : photoStatus === 'Rejeitada' ? 'Foto Reprovada' : 'Foto Pendente'}
+          </span>
+        </div>
+
         <div class="driver-detail" style="font-size:12px; line-height:1.7;">
           <div><i class="fas fa-car" style="width:18px; color:var(--green);"></i> ${escapeHtml(m.marca_veiculo || "")} ${escapeHtml(m.modelo_veiculo || "Veículo não inf.")}</div>
           <div><i class="fas fa-id-card" style="width:18px; color:var(--green);"></i> Placa: <strong>${escapeHtml(m.placa_veiculo || "—")}</strong> (${escapeHtml(m.cor_veiculo || "Cor —")})</div>
@@ -1520,6 +1821,7 @@ window.approveDriver = async function (driverId) {
     if (item) {
       item.status = "Aprovado";
       item.vehicle_status = "Aprovado";
+      item.foto_status = "Aprovada";
       item.updated_at = new Date().toISOString();
     }
     localStorage.setItem("sr_motoristas_cache", JSON.stringify(motoristasCache));
@@ -1527,13 +1829,18 @@ window.approveDriver = async function (driverId) {
     if (supabaseClient) {
       const { error } = await supabaseClient
         .from("motoristas")
-        .update({ status: "Aprovado", vehicle_status: "Aprovado", updated_at: new Date().toISOString() })
+        .update({
+          status: "Aprovado",
+          vehicle_status: "Aprovado",
+          foto_status: "Aprovada",
+          updated_at: new Date().toISOString()
+        })
         .eq("id", driverId);
 
       if (error && error.code !== "PGRST205") console.warn("Supabase update status:", error);
     }
 
-    showNotification("Motorista aprovado/reativado com sucesso!", "success");
+    showNotification("Motorista e foto homologados com sucesso!", "success");
     updateMetrics();
     renderOverviewApprovals();
     renderApprovals();
@@ -1610,6 +1917,19 @@ function setupDriverModal() {
   const form = document.getElementById("driver-form");
   const feedback = document.getElementById("driver-feedback");
   const modalTitle = document.getElementById("driver-modal-title");
+  const photoUrlInput = document.getElementById("driver-photo-url");
+  const photoPreview = document.getElementById("driver-modal-avatar-preview");
+
+  if (photoUrlInput && photoPreview) {
+    photoUrlInput.addEventListener("input", (e) => {
+      const url = e.target.value.trim();
+      if (url) {
+        photoPreview.innerHTML = `<img src="${url}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" onerror="this.parentElement.innerHTML='<i class=\\'fas fa-id-card\\'></i>'">`;
+      } else {
+        photoPreview.innerHTML = `<i class="fas fa-id-card"></i>`;
+      }
+    });
+  }
 
   const openModal = (driverData = null) => {
     if (!modal) return;
@@ -1644,6 +1964,18 @@ function setupDriverModal() {
       if (statusSelect) statusSelect.value = driverData.status || "Aprovado";
       const emailInput = document.getElementById("driver-email");
       if (emailInput) emailInput.value = driverData.email || "";
+
+      const photoUrl = driverData.foto_url || driverData.avatar_url || "";
+      if (photoUrlInput) photoUrlInput.value = photoUrl;
+      const photoStatusSelect = document.getElementById("driver-photo-status");
+      if (photoStatusSelect) photoStatusSelect.value = driverData.foto_status || "Aprovada";
+      if (photoPreview) {
+        if (photoUrl) {
+          photoPreview.innerHTML = `<img src="${photoUrl}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" onerror="this.parentElement.innerHTML='<i class=\\'fas fa-id-card\\'></i>'">`;
+        } else {
+          photoPreview.innerHTML = `<i class="fas fa-id-card"></i>`;
+        }
+      }
     } else {
       if (modalTitle) modalTitle.textContent = "Cadastrar Novo Motorista";
       if (form) form.reset();
@@ -1653,6 +1985,9 @@ function setupDriverModal() {
       if (catSelect) catSelect.value = "particular";
       const statusSelect = document.getElementById("driver-status-select");
       if (statusSelect) statusSelect.value = "Aprovado";
+      const photoStatusSelect = document.getElementById("driver-photo-status");
+      if (photoStatusSelect) photoStatusSelect.value = "Aprovada";
+      if (photoPreview) photoPreview.innerHTML = `<i class="fas fa-id-card"></i>`;
     }
 
     modal.classList.remove("hidden");
@@ -1684,6 +2019,8 @@ function setupDriverModal() {
       const cor = (document.getElementById("driver-car-color")?.value || "").trim();
       const status = document.getElementById("driver-status-select")?.value || "Aprovado";
       const email = (document.getElementById("driver-email")?.value || "").trim();
+      const photoUrl = (document.getElementById("driver-photo-url")?.value || "").trim();
+      const photoStatus = document.getElementById("driver-photo-status")?.value || (photoUrl ? "Aprovada" : "Pendente");
 
       if (!nomeSocial || !telefone) {
         if (feedback) {
@@ -1706,6 +2043,9 @@ function setupDriverModal() {
           nome_completo: nomeCompleto || nomeSocial,
           telefone: telefone,
           cpf: cpf,
+          foto_url: photoUrl || null,
+          avatar_url: photoUrl || null,
+          foto_status: photoStatus,
           categoria_tipo: catTipo,
           categoria: isEmpresa ? "Empresa" : "Particular",
           recebe_voucher: true,

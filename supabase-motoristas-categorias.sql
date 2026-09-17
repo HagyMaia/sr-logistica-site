@@ -29,16 +29,21 @@ CREATE TABLE IF NOT EXISTS public.motoristas (
   cnh text,
   crlv text,
   foto_url text,
+  avatar_url text,
+  foto_status text DEFAULT 'Pendente',               -- 'Pendente', 'Aprovada', 'Rejeitada'
   observacoes text,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now())
 );
 
--- 2. Garantir que as colunas de Categoria e Regra de Corridas existam (caso a tabela já existisse)
+-- 2. Garantir que as colunas de Categoria, Regra de Corridas e Fotos existam (caso a tabela já existisse)
 ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS categoria_tipo text DEFAULT 'particular';
 ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS categoria text DEFAULT 'Particular';
 ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS recebe_voucher boolean DEFAULT true;
 ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS recebe_particular boolean DEFAULT true;
+ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS foto_url text;
+ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS avatar_url text;
+ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS foto_status text DEFAULT 'Pendente';
 ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone DEFAULT timezone('utc'::text, now());
 
 -- 3. Atualizar motoristas existentes conforme a categoria

@@ -22,13 +22,24 @@ CREATE TABLE IF NOT EXISTS public.passageiros (
   matricula text,
   turno text,
   endereco text,
+  foto_url text,
+  avatar_url text,
+  foto_status text DEFAULT 'Pendente',               -- 'Pendente', 'Aprovada', 'Rejeitada'
+  payment_preference text DEFAULT 'VOUCHER',         -- 'VOUCHER', 'PIX', 'DINHEIRO', 'CARTAO'
+  voucher_habilitado boolean DEFAULT false,          -- Liberado automaticamente quando status = 'Aprovado'
   origem text DEFAULT 'App Passageiro',
-  status text NOT NULL DEFAULT 'Pendente', -- 'Pendente', 'Aprovado', 'Reprovado'
+  status text NOT NULL DEFAULT 'Pendente',            -- 'Pendente' (Aguardando aprovação - somente PIX), 'Aprovado' (Voucher Liberado), 'Reprovado'
   motivo_rejeicao text,
   observacoes text,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now())
 );
+
+ALTER TABLE public.passageiros ADD COLUMN IF NOT EXISTS foto_url text;
+ALTER TABLE public.passageiros ADD COLUMN IF NOT EXISTS avatar_url text;
+ALTER TABLE public.passageiros ADD COLUMN IF NOT EXISTS foto_status text DEFAULT 'Pendente';
+ALTER TABLE public.passageiros ADD COLUMN IF NOT EXISTS payment_preference text DEFAULT 'VOUCHER';
+ALTER TABLE public.passageiros ADD COLUMN IF NOT EXISTS voucher_habilitado boolean DEFAULT false;
 
 ALTER TABLE public.passageiros ENABLE ROW LEVEL SECURITY;
 
@@ -52,7 +63,7 @@ CREATE TABLE IF NOT EXISTS public.motoristas (
   cpf text,
   telefone text NOT NULL,
   email text,
-  categoria_tipo text NOT NULL DEFAULT 'particular', -- 'particular' ou 'empresa'
+  categoria_tipo text NOT NULL DEFAULT 'particular', -- 'particular' (Voucher + Particular) ou 'empresa' (Apenas Voucher)
   categoria text NOT NULL DEFAULT 'Particular',      -- 'Particular' ou 'Empresa'
   recebe_voucher boolean NOT NULL DEFAULT true,       -- Ambos os tipos recebem voucher
   recebe_particular boolean NOT NULL DEFAULT true,    -- Empresa: false | Particular: true
@@ -67,6 +78,8 @@ CREATE TABLE IF NOT EXISTS public.motoristas (
   cnh text,
   crlv text,
   foto_url text,
+  avatar_url text,
+  foto_status text DEFAULT 'Pendente',               -- 'Pendente', 'Aprovada', 'Rejeitada'
   observacoes text,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now())
@@ -76,6 +89,9 @@ ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS categoria_tipo text DEFAU
 ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS categoria text DEFAULT 'Particular';
 ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS recebe_voucher boolean DEFAULT true;
 ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS recebe_particular boolean DEFAULT true;
+ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS foto_url text;
+ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS avatar_url text;
+ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS foto_status text DEFAULT 'Pendente';
 
 ALTER TABLE public.motoristas ENABLE ROW LEVEL SECURITY;
 
