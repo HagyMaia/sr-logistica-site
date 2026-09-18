@@ -1934,137 +1934,15 @@ body.dark-mode .pass-form-header h3 {
   margin: 0;
 }
 
-/* Driver Categories Showcase */
-.driver-categories-showcase {
-  background: var(--paper);
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  padding: 32px;
-}
-
-.categories-showcase-header {
-  margin-bottom: 24px;
-}
-
-.categories-showcase-header h3 {
-  font-size: 1.45rem;
-  font-weight: 800;
-  color: var(--ink);
-  margin: 8px 0 4px;
-}
-
-.categories-showcase-header p {
-  font-size: 0.9rem;
-  color: var(--muted);
-  margin: 0;
-}
-
-.categories-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
-
-.category-card {
-  background: var(--white);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
-}
-
-.category-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 24px -6px rgba(0, 0, 0, 0.08);
-}
-
-.category-card.particular {
-  border-top: 4px solid #0284c7;
-}
-
-.category-card.empresa {
-  border-top: 4px solid #d97706;
-}
-
-.category-header {
-  margin-bottom: 12px;
-}
-
-.category-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  font-weight: 800;
-  padding: 4px 10px;
-  border-radius: 20px;
-  text-transform: uppercase;
-  margin-bottom: 8px;
-}
-
-.category-card.particular .category-badge {
-  background: #e0f2fe;
-  color: #0369a1;
-}
-
-.category-card.empresa .category-badge {
-  background: #fef3c7;
-  color: #b45309;
-}
-
-.category-header h4 {
-  font-size: 16px;
-  font-weight: 800;
-  color: var(--ink);
-  margin: 0;
-}
-
-.category-card p {
-  font-size: 13px;
-  color: var(--muted);
-  line-height: 1.6;
-  margin-bottom: 16px;
-}
-
-.category-checklist {
-  list-style: none;
-  padding: 0;
-  margin: auto 0 0 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.category-checklist li {
-  font-size: 12px;
-  color: var(--ink);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 600;
-}
-
-.category-checklist li i.fa-check {
-  color: var(--green);
-}
-
 @media (max-width: 960px) {
   .app-pillars-grid {
     grid-template-columns: 1fr 1fr;
-  }
-  .categories-grid {
-    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 600px) {
   .app-pillars-grid {
     grid-template-columns: 1fr;
-  }
-  .driver-categories-showcase {
-    padding: 20px 16px;
   }
 }
 
