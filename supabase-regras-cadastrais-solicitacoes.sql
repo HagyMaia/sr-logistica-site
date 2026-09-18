@@ -62,6 +62,16 @@ CREATE INDEX IF NOT EXISTS idx_solicitacoes_usuario ON public.solicitacoes_alter
 ALTER TABLE public.passageiros ADD COLUMN IF NOT EXISTS solicitacao_pendente boolean DEFAULT false;
 ALTER TABLE public.passageiros ADD COLUMN IF NOT EXISTS foto_status text DEFAULT 'Pendente';
 ALTER TABLE public.passageiros ADD COLUMN IF NOT EXISTS voucher_habilitado boolean DEFAULT false;
+ALTER TABLE public.passageiros ADD COLUMN IF NOT EXISTS data_nascimento date;
+ALTER TABLE public.passageiros ADD COLUMN IF NOT EXISTS cep text;
+ALTER TABLE public.passageiros ADD COLUMN IF NOT EXISTS rua text;
+ALTER TABLE public.passageiros ADD COLUMN IF NOT EXISTS numero text;
+ALTER TABLE public.passageiros ADD COLUMN IF NOT EXISTS complemento text;
+ALTER TABLE public.passageiros ADD COLUMN IF NOT EXISTS bairro text;
+ALTER TABLE public.passageiros ADD COLUMN IF NOT EXISTS cidade text;
+ALTER TABLE public.passageiros ADD COLUMN IF NOT EXISTS estado text;
+ALTER TABLE public.passageiros ADD COLUMN IF NOT EXISTS dados_pessoais_status text DEFAULT 'Aprovado';
+ALTER TABLE public.passageiros ADD COLUMN IF NOT EXISTS pending_personal_data jsonb;
 
 ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS solicitacao_pendente boolean DEFAULT false;
 ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS foto_status text DEFAULT 'Pendente';
@@ -69,6 +79,25 @@ ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS categoria_tipo text DEFAU
 ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS categoria text DEFAULT 'Particular';
 ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS recebe_voucher boolean DEFAULT true;
 ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS recebe_particular boolean DEFAULT true;
+ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS cnh text;
+ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS data_nascimento date;
+ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS cep text;
+ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS rua text;
+ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS numero text;
+ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS complemento text;
+ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS bairro text;
+ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS cidade text;
+ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS estado text;
+ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS endereco text;
+ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS dados_pessoais_status text DEFAULT 'Aprovado';
+ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS pending_personal_data jsonb;
+ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS dados_empresa_status text DEFAULT 'Aprovado';
+ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS pending_company_data jsonb;
+ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS empresa_razao_social text;
+ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS empresa_cnpj text;
+ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS empresa_nome_fantasia text;
+ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS role text DEFAULT 'driver';
+ALTER TABLE public.motoristas ADD COLUMN IF NOT EXISTS is_admin boolean DEFAULT false;
 
 -- ------------------------------------------------------------------------------
 -- 3. POLÍTICAS DE SEGURANÇA RLS (Row Level Security)
@@ -117,10 +146,10 @@ BEGIN
   IF v_solicitacao.tipo_usuario = 'passageiro' THEN
     UPDATE public.passageiros
     SET
-      nome = COALESCE(v_novos->>'nome', nome),
-      nome_social = COALESCE(v_novos->>'nome_social', nome_social),
-      nome_completo = COALESCE(v_novos->>'nome_completo', nome_completo),
-      telefone = COALESCE(v_novos->>'telefone', telefone),
+      nome = COALESCE(v_novos->>'nome', v_novos->>'displayName', v_novos->>'fullName', nome),
+      nome_social = COALESCE(v_novos->>'nome_social', v_novos->>'displayName', nome_social),
+      nome_completo = COALESCE(v_novos->>'nome_completo', v_novos->>'fullName', nome_completo),
+      telefone = COALESCE(v_novos->>'telefone', v_novos->>'phone', telefone),
       email = COALESCE(v_novos->>'email', email),
       cpf = COALESCE(v_novos->>'cpf', cpf),
       empresa = COALESCE(v_novos->>'empresa', empresa),
@@ -134,6 +163,8 @@ BEGIN
                       WHEN v_novos ? 'foto_url' THEN 'Aprovada'
                       ELSE foto_status
                     END,
+      dados_pessoais_status = 'Aprovado',
+      pending_personal_data = NULL,
       solicitacao_pendente = false,
       updated_at = timezone('utc'::text, now())
     WHERE id = v_solicitacao.usuario_id;
@@ -141,12 +172,13 @@ BEGIN
   ELSIF v_solicitacao.tipo_usuario = 'motorista' THEN
     UPDATE public.motoristas
     SET
-      nome = COALESCE(v_novos->>'nome', nome),
-      nome_social = COALESCE(v_novos->>'nome_social', nome_social),
-      nome_completo = COALESCE(v_novos->>'nome_completo', nome_completo),
-      telefone = COALESCE(v_novos->>'telefone', telefone),
+      nome = COALESCE(v_novos->>'nome', v_novos->>'displayName', v_novos->>'fullName', nome),
+      nome_social = COALESCE(v_novos->>'nome_social', v_novos->>'displayName', nome_social),
+      nome_completo = COALESCE(v_novos->>'nome_completo', v_novos->>'fullName', nome_completo),
+      telefone = COALESCE(v_novos->>'telefone', v_novos->>'phone', telefone),
       email = COALESCE(v_novos->>'email', email),
       cpf = COALESCE(v_novos->>'cpf', cpf),
+      cnh = COALESCE(v_novos->>'cnh', cnh),
       categoria_tipo = COALESCE(v_novos->>'categoria_tipo', categoria_tipo),
       categoria = COALESCE(v_novos->>'categoria', categoria),
       recebe_voucher = COALESCE((v_novos->>'recebe_voucher')::boolean, recebe_voucher),
@@ -161,6 +193,8 @@ BEGIN
                       WHEN v_novos ? 'foto_url' THEN 'Aprovada'
                       ELSE foto_status
                     END,
+      dados_pessoais_status = 'Aprovado',
+      pending_personal_data = NULL,
       solicitacao_pendente = false,
       updated_at = timezone('utc'::text, now())
     WHERE id = v_solicitacao.usuario_id;

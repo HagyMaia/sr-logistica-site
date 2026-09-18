@@ -1242,37 +1242,94 @@ function setupAlterationFilters() {
 }
 
 async function loadSolicitacoes() {
-  if (!supabaseClient) {
-    const localData = localStorage.getItem("sr_solicitacoes_cache");
-    solicitacoesCache = localData ? JSON.parse(localData) : getInitialSolicitacoesMock();
-    updateMetrics();
-    renderOverviewApprovals();
-    renderSolicitacoes();
-    return;
-  }
-  try {
-    const { data, error } = await supabaseClient
-      .from("solicitacoes_alteracao")
-      .select("*")
-      .order("created_at", { ascending: false });
+  let loadedList = [];
+  if (supabaseClient) {
+    try {
+      const { data, error } = await supabaseClient
+        .from("solicitacoes_alteracao")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-    if (error) {
-      console.warn(
-        "Aviso ao buscar solicitacoes_alteracao no Supabase:",
-        error.message,
-        "(utilizando armazenamento local de contingência)"
-      );
-      const localData = localStorage.getItem("sr_solicitacoes_cache");
-      solicitacoesCache = localData ? JSON.parse(localData) : getInitialSolicitacoesMock();
-    } else {
-      solicitacoesCache = data || [];
-      localStorage.setItem("sr_solicitacoes_cache", JSON.stringify(solicitacoesCache));
+      if (error) {
+        console.warn(
+          "Aviso ao buscar solicitacoes_alteracao no Supabase:",
+          error.message,
+          "(utilizando armazenamento local de contingência)"
+        );
+      } else if (data && Array.isArray(data)) {
+        loadedList = data;
+      }
+    } catch (err) {
+      console.error("Erro ao carregar solicitacoes_alteracao:", err);
     }
-  } catch (err) {
-    console.error("Erro ao carregar solicitacoes_alteracao:", err);
-    const localData = localStorage.getItem("sr_solicitacoes_cache");
-    solicitacoesCache = localData ? JSON.parse(localData) : getInitialSolicitacoesMock();
   }
+
+  // Fallback / Enriquecimento com solicitações locais ou embutidas nos motoristas
+  const localData = localStorage.getItem("sr_solicitacoes_cache");
+  if (localData) {
+    try {
+      const parsedLocal = JSON.parse(localData);
+      if (Array.isArray(parsedLocal)) {
+        parsedLocal.forEach((locItem) => {
+          if (!loadedList.some((l) => String(l.id) === String(locItem.id))) {
+            loadedList.push(locItem);
+          }
+        });
+      }
+    } catch {}
+  }
+
+  // Verifica se há motoristas no cache com solicitação pendente
+  if (Array.isArray(motoristasCache)) {
+    motoristasCache.forEach((m) => {
+      let pendingData = m.pending_personal_data;
+      if (!pendingData && typeof window !== "undefined") {
+        try {
+          const cached = localStorage.getItem(`mobipro_pending_personal_${m.id}`);
+          if (cached) pendingData = JSON.parse(cached);
+        } catch {}
+      }
+
+      if (pendingData) {
+        const solId = `sol_driver_${m.id}`;
+        const alreadyExists = loadedList.some((s) => String(s.usuario_id) === String(m.id) && s.status === "Pendente");
+        if (!alreadyExists) {
+          loadedList.unshift({
+            id: solId,
+            tipo_usuario: "motorista",
+            usuario_id: m.id,
+            usuario_nome: pendingData.fullName || pendingData.displayName || m.nome_completo || m.nome || "Motorista SR",
+            tipo_alteracao: "dados_cadastrais",
+            dados_anteriores: {
+              nome: m.nome || "",
+              nome_social: m.nome_social || "",
+              nome_completo: m.nome_completo || "",
+              cpf: m.cpf || "—",
+              cnh: m.cnh || "—",
+              telefone: m.telefone || m.phone || "—",
+              email: m.email || "",
+            },
+            dados_novos: {
+              nome: pendingData.displayName || pendingData.fullName,
+              nome_social: pendingData.displayName || pendingData.fullName,
+              nome_completo: pendingData.fullName || pendingData.displayName,
+              cpf: pendingData.cpf,
+              cnh: pendingData.cnh,
+              telefone: pendingData.phone,
+              data_nascimento: pendingData.birthDate,
+              email: pendingData.email || m.email,
+            },
+            justificativa: "Solicitação de alteração cadastral enviada pelo aplicativo do motorista",
+            status: "Pendente",
+            created_at: m.updated_at || new Date().toISOString()
+          });
+        }
+      }
+    });
+  }
+
+  solicitacoesCache = loadedList;
+  localStorage.setItem("sr_solicitacoes_cache", JSON.stringify(solicitacoesCache));
 
   updateMetrics();
   renderOverviewApprovals();
@@ -1500,7 +1557,28 @@ function renderDiffHTML(oldData, newData, tipoAlt) {
     }
   });
 
-  return rowsHtml;
+// Helper de atualização resiliente para o Supabase
+async function updateSupabaseTableResilient(tableName, recordId, payload) {
+  if (!supabaseClient || !recordId) return false;
+  let p = { ...payload };
+  let attempts = 0;
+  while (attempts < 20) {
+    attempts++;
+    const { error } = await supabaseClient.from(tableName).update(p).eq("id", recordId);
+    if (!error) {
+      console.log(`[Admin] Sucesso ao atualizar ${tableName} (${recordId})`);
+      return true;
+    }
+    const colMatch = error.message.match(/Could not find the '([^']+)' column/i);
+    if (colMatch && colMatch[1] && p[colMatch[1]] !== undefined) {
+      console.warn(`[Admin] Coluna '${colMatch[1]}' não existe em ${tableName}. Removendo e tentando novamente...`);
+      delete p[colMatch[1]];
+    } else {
+      console.warn(`[Admin] Aviso ao atualizar ${tableName} (${recordId}):`, error.message);
+      break;
+    }
+  }
+  return false;
 }
 
 // APROVAÇÃO OFICIAL DE ALTERAÇÃO CADASTRAL
@@ -1522,12 +1600,30 @@ async function aprovarAlteracao(solicitacaoId) {
       }
     }
 
-    // 1. Atualiza cache local de usuários oficiais
+    // 1. Normalização profunda dos dados novos
+    const nomeNormalizado = novos.nome || novos.name || novos.fullName || novos.displayName || novos.nome_social || novos.nome_completo;
+    const telefoneNormalizado = novos.telefone || novos.phone || novos.whatsapp || novos.celular;
+    const cpfNormalizado = novos.cpf;
+    const enderecoNormalizado = novos.endereco || novos.pickup_address || novos.address;
+    const empresaNormalizada = novos.empresa || novos.company || novos.corporate_company || novos.razao_social;
+    const setorNormalizado = novos.setor || novos.department;
+    const matriculaNormalizada = novos.matricula || novos.employee_registration || novos.employee_id;
+    const turnoNormalizado = novos.turno || novos.shift;
+    const fotoNormalizada = novos.foto_url || novos.avatar_url || novos.foto || novos.avatar;
+
+    // Atualiza cache local de usuários oficiais
     if (item.tipo_usuario === "passageiro") {
       const p = passageirosCache.find((u) => String(u.id) === String(item.usuario_id));
       if (p) {
-        Object.assign(p, novos);
-        if (novos.foto_url) p.foto_status = "Aprovada";
+        if (nomeNormalizado) { p.nome = nomeNormalizado; p.name = nomeNormalizado; }
+        if (telefoneNormalizado) { p.telefone = telefoneNormalizado; p.phone = telefoneNormalizado; }
+        if (cpfNormalizado) p.cpf = cpfNormalizado;
+        if (enderecoNormalizado) { p.endereco = enderecoNormalizado; p.pickup_address = enderecoNormalizado; }
+        if (empresaNormalizada) { p.empresa = empresaNormalizada; p.company = empresaNormalizada; }
+        if (setorNormalizado) { p.setor = setorNormalizado; p.department = setorNormalizado; }
+        if (matriculaNormalizada) { p.matricula = matriculaNormalizada; p.employee_registration = matriculaNormalizada; }
+        if (turnoNormalizado) { p.turno = turnoNormalizado; p.shift = turnoNormalizado; }
+        if (fotoNormalizada) { p.foto_url = fotoNormalizada; p.avatar_url = fotoNormalizada; p.foto_status = "Aprovada"; }
         p.solicitacao_pendente = false;
         p.updated_at = new Date().toISOString();
       }
@@ -1535,7 +1631,13 @@ async function aprovarAlteracao(solicitacaoId) {
     } else {
       const m = motoristasCache.find((u) => String(u.id) === String(item.usuario_id));
       if (m) {
-        Object.assign(m, novos);
+        if (nomeNormalizado) { m.nome = nomeNormalizado; m.nome_social = nomeNormalizado; m.name = nomeNormalizado; }
+        if (telefoneNormalizado) { m.telefone = telefoneNormalizado; m.phone = telefoneNormalizado; }
+        if (cpfNormalizado) m.cpf = cpfNormalizado;
+        if (novos.marca_veiculo || novos.brand) m.marca_veiculo = novos.marca_veiculo || novos.brand;
+        if (novos.modelo_veiculo || novos.model) m.modelo_veiculo = novos.modelo_veiculo || novos.model;
+        if (novos.cor_veiculo || novos.color) m.cor_veiculo = novos.cor_veiculo || novos.color;
+        if (novos.placa_veiculo || novos.plate) m.placa_veiculo = novos.placa_veiculo || novos.plate;
         if (novos.categoria_tipo || novos.categoria) {
           const isEmpresa = (novos.categoria_tipo === "empresa" || novos.categoria === "Empresa");
           m.categoria_tipo = isEmpresa ? "empresa" : "particular";
@@ -1543,7 +1645,8 @@ async function aprovarAlteracao(solicitacaoId) {
           m.recebe_voucher = true;
           m.recebe_particular = !isEmpresa;
         }
-        if (novos.foto_url) m.foto_status = "Aprovada";
+        if (fotoNormalizada) { m.foto_url = fotoNormalizada; m.avatar_url = fotoNormalizada; m.foto_status = "Aprovada"; }
+        m.dados_pessoais_status = "Aprovado";
         m.solicitacao_pendente = false;
         m.updated_at = new Date().toISOString();
       }
@@ -1557,28 +1660,134 @@ async function aprovarAlteracao(solicitacaoId) {
     item.updated_at = new Date().toISOString();
     localStorage.setItem("sr_solicitacoes_cache", JSON.stringify(solicitacoesCache));
 
-    // 3. Atualiza no Supabase
+    // 3. Atualiza no Supabase (Atualiza tabelas específicas e a tabela profiles)
     if (supabaseClient) {
       try {
-        const { error: rpcErr } = await supabaseClient.rpc("aprovar_solicitacao_alteracao", {
-          p_solicitacao_id: item.id,
-          p_admin_info: adminEmail
-        });
+        if (item.tipo_usuario === "passageiro") {
+          // Payload para a tabela passageiros
+          const passPayload = {
+            nome: nomeNormalizado,
+            nome_social: nomeNormalizado,
+            nome_completo: nomeNormalizado,
+            telefone: telefoneNormalizado,
+            phone: telefoneNormalizado,
+            cpf: cpfNormalizado,
+            endereco: enderecoNormalizado,
+            pickup_address: enderecoNormalizado,
+            empresa: empresaNormalizada,
+            company: empresaNormalizada,
+            setor: setorNormalizado,
+            department: setorNormalizado,
+            matricula: matriculaNormalizada,
+            employee_registration: matriculaNormalizada,
+            turno: turnoNormalizado,
+            shift: turnoNormalizado,
+            solicitacao_pendente: false,
+            updated_at: new Date().toISOString()
+          };
+          if (fotoNormalizada) {
+            passPayload.foto_url = fotoNormalizada;
+            passPayload.avatar_url = fotoNormalizada;
+            passPayload.foto_status = "Aprovada";
+          }
+          Object.keys(passPayload).forEach((k) => passPayload[k] === undefined && delete passPayload[k]);
+          await updateSupabaseTableResilient("passageiros", item.usuario_id, passPayload);
 
-        if (rpcErr) {
-          console.warn("RPC aprovar_solicitacao_alteracao não configurada, executando queries diretas:", rpcErr.message);
-          const targetTable = item.tipo_usuario === "passageiro" ? "passageiros" : "motoristas";
-          const updatePayload = { ...novos, solicitacao_pendente: false, updated_at: new Date().toISOString() };
-          if (novos.foto_url) updatePayload.foto_status = "Aprovada";
+          // Payload para a tabela profiles
+          const profPayload = {
+            name: nomeNormalizado,
+            nome: nomeNormalizado,
+            full_name: nomeNormalizado,
+            phone: telefoneNormalizado,
+            telefone: telefoneNormalizado,
+            cpf: cpfNormalizado,
+            pickup_address: enderecoNormalizado,
+            endereco: enderecoNormalizado,
+            company: empresaNormalizada,
+            empresa: empresaNormalizada,
+            corporate_company: empresaNormalizada,
+            department: setorNormalizado,
+            setor: setorNormalizado,
+            employee_registration: matriculaNormalizada,
+            matricula: matriculaNormalizada,
+            shift: turnoNormalizado,
+            turno: turnoNormalizado,
+            solicitacao_pendente: false,
+            updated_at: new Date().toISOString()
+          };
+          if (fotoNormalizada) {
+            profPayload.avatar_url = fotoNormalizada;
+            profPayload.foto_url = fotoNormalizada;
+            profPayload.foto_status = "Aprovada";
+            profPayload.photo_status = "approved";
+          }
+          Object.keys(profPayload).forEach((k) => profPayload[k] === undefined && delete profPayload[k]);
+          await updateSupabaseTableResilient("profiles", item.usuario_id, profPayload);
 
-          await supabaseClient.from(targetTable).update(updatePayload).eq("id", item.usuario_id);
+        } else {
+          // Payload para a tabela motoristas
+          const drvPayload = {
+            nome: nomeNormalizado,
+            nome_social: nomeNormalizado,
+            nome_completo: nomeNormalizado,
+            telefone: telefoneNormalizado,
+            phone: telefoneNormalizado,
+            cpf: cpfNormalizado,
+            marca_veiculo: novos.marca_veiculo || novos.brand,
+            modelo_veiculo: novos.modelo_veiculo || novos.model,
+            cor_veiculo: novos.cor_veiculo || novos.color,
+            placa_veiculo: novos.placa_veiculo || novos.plate,
+            dados_pessoais_status: "Aprovado",
+            pending_personal_data: null,
+            solicitacao_pendente: false,
+            updated_at: new Date().toISOString()
+          };
+          if (novos.categoria_tipo || novos.categoria) {
+            const isEmpresa = (novos.categoria_tipo === "empresa" || novos.categoria === "Empresa");
+            drvPayload.categoria_tipo = isEmpresa ? "empresa" : "particular";
+            drvPayload.categoria = isEmpresa ? "Empresa" : "Particular";
+            drvPayload.recebe_voucher = true;
+            drvPayload.recebe_particular = !isEmpresa;
+          }
+          if (fotoNormalizada) {
+            drvPayload.foto_url = fotoNormalizada;
+            drvPayload.avatar_url = fotoNormalizada;
+            drvPayload.foto_status = "Aprovada";
+          }
+          Object.keys(drvPayload).forEach((k) => drvPayload[k] === undefined && delete drvPayload[k]);
+          await updateSupabaseTableResilient("motoristas", item.usuario_id, drvPayload);
+
+          // Payload para a tabela profiles do motorista
+          const profPayload = {
+            name: nomeNormalizado,
+            nome: nomeNormalizado,
+            full_name: nomeNormalizado,
+            phone: telefoneNormalizado,
+            telefone: telefoneNormalizado,
+            cpf: cpfNormalizado,
+            solicitacao_pendente: false,
+            updated_at: new Date().toISOString()
+          };
+          if (fotoNormalizada) {
+            profPayload.avatar_url = fotoNormalizada;
+            profPayload.foto_url = fotoNormalizada;
+            profPayload.foto_status = "Aprovada";
+            profPayload.photo_status = "approved";
+          }
+          Object.keys(profPayload).forEach((k) => profPayload[k] === undefined && delete profPayload[k]);
+          await updateSupabaseTableResilient("profiles", item.usuario_id, profPayload);
+        }
+
+        // Atualiza o status em solicitacoes_alteracao no Supabase
+        try {
           await supabaseClient.from("solicitacoes_alteracao").update({
             status: "Aprovado",
             analisado_por: adminEmail,
             analisado_em: new Date().toISOString(),
             updated_at: new Date().toISOString()
           }).eq("id", item.id);
-        }
+        } catch {}
+
       } catch (dbErr) {
         console.warn("Aviso ao persistir aprovação no Supabase:", dbErr.message);
       }
