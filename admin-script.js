@@ -1883,23 +1883,25 @@ function setupAlterationRejectModal() {
 
         if (supabaseClient) {
           try {
-            const { error: rpcErr } = await supabaseClient.rpc("rejeitar_solicitacao_alteracao", {
-              p_solicitacao_id: item.id,
-              p_motivo: reason,
-              p_admin_info: adminEmail
-            });
+            const targetTable = item.tipo_usuario === "passageiro" ? "passageiros" : "motoristas";
+            const rejectPayload = {
+              solicitacao_pendente: false,
+              pending_personal_data: null,
+              dados_pessoais_status: "Reprovado",
+              pending_company_data: null,
+              dados_empresa_status: "Reprovado",
+              updated_at: new Date().toISOString()
+            };
+            await updateSupabaseTableResilient(targetTable, item.usuario_id, rejectPayload);
+            await updateSupabaseTableResilient("profiles", item.usuario_id, { solicitacao_pendente: false, updated_at: new Date().toISOString() });
 
-            if (rpcErr) {
-              const targetTable = item.tipo_usuario === "passageiro" ? "passageiros" : "motoristas";
-              await supabaseClient.from(targetTable).update({ solicitacao_pendente: false }).eq("id", item.usuario_id);
-              await supabaseClient.from("solicitacoes_alteracao").update({
-                status: "Rejeitado",
-                motivo_rejeicao: reason,
-                analisado_por: adminEmail,
-                analisado_em: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              }).eq("id", item.id);
-            }
+            await supabaseClient.from("solicitacoes_alteracao").update({
+              status: "Rejeitado",
+              motivo_rejeicao: reason,
+              analisado_por: adminEmail,
+              analisado_em: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }).eq("id", item.id);
           } catch (dbErr) {
             console.warn("Aviso ao persistir rejeição no Supabase:", dbErr.message);
           }
