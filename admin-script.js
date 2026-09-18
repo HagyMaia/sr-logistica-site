@@ -30,12 +30,16 @@ if (supabaseClient && typeof window !== "undefined") {
 let currentView = "overview";
 let currentDriverTab = "pending";
 let currentPassengerTab = "pending";
+let currentAlterationTab = "pending";
 let passengerSearchQuery = "";
 let passengerCompanyFilter = "";
 let passengerBaseSearchQuery = "";
+let alterationSearchQuery = "";
+let alterationUserTypeFilter = "all";
 
 let motoristasCache = [];
 let passageirosCache = [];
+let solicitacoesCache = [];
 let empresasCache = [];
 let postsCache = [];
 let corridasCache = [];
@@ -76,6 +80,9 @@ document.addEventListener("DOMContentLoaded", () => {
   setupCompanyFilters();
   setupReportsView();
   setupPhotoModal();
+  setupAlterationFilters();
+  setupAlterationSimModal();
+  setupAlterationRejectModal();
   checkSession();
 });
 
@@ -531,7 +538,25 @@ function setupNavigation() {
     });
   });
 
+  // Tabs de Alterações Cadastrais (NOVO)
+  const alterationTabs = document.querySelectorAll(
+    ".tabs .tab[data-alteration-tab]",
+  );
+  alterationTabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      alterationTabs.forEach((t) => t.classList.remove("active"));
+      tab.classList.add("active");
+      currentAlterationTab = tab.getAttribute("data-alteration-tab") || "pending";
+      renderSolicitacoes();
+    });
+  });
+
   // Botões de atualização manual
+  const btnRefreshAlterations = document.getElementById("refresh-alterations");
+  if (btnRefreshAlterations) {
+    btnRefreshAlterations.addEventListener("click", () => loadSolicitacoes());
+  }
+
   const btnRefreshDrivers = document.getElementById("refresh-approvals");
   if (btnRefreshDrivers) {
     btnRefreshDrivers.addEventListener("click", () => loadMotoristas());
@@ -590,6 +615,7 @@ function switchView(viewId) {
   if (titleElem) {
     const titles = {
       overview: "Visão Geral",
+      alterations: "Solicitações de Alteração Cadastral",
       "passenger-approvals": "Aprovações de Passageiros",
       approvals: "Aprovações de Motoristas",
       passengers: "Passageiros Homologados",
@@ -602,7 +628,9 @@ function switchView(viewId) {
     titleElem.textContent = titles[viewId] || "Painel Admin";
   }
 
-  if (viewId === "reports") {
+  if (viewId === "alterations") {
+    loadSolicitacoes();
+  } else if (viewId === "reports") {
     loadCorridasReports();
   } else if (viewId === "companies") {
     loadEmpresas();
@@ -620,6 +648,7 @@ async function loadAllData() {
   await Promise.all([
     loadMotoristas(),
     loadPassageiros(),
+    loadSolicitacoes(),
     loadEmpresas(),
     loadPosts(),
     loadCorridasReports(),
@@ -804,6 +833,17 @@ function updateMetrics() {
     (p) => p.status === "Reprovado",
   ).length;
 
+  // Alterações Cadastrais (NOVO)
+  const alterationsPending = solicitacoesCache.filter(
+    (s) => s.status === "Pendente",
+  ).length;
+  const alterationsApproved = solicitacoesCache.filter(
+    (s) => s.status === "Aprovado",
+  ).length;
+  const alterationsRejected = solicitacoesCache.filter(
+    (s) => s.status === "Rejeitado",
+  ).length;
+
   // Atualiza contadores no DOM
   const mPending = document.getElementById("metric-pending");
   const mApproved = document.getElementById("metric-approved");
@@ -825,12 +865,8 @@ function updateMetrics() {
   const mPassApproved = document.getElementById("metric-passenger-approved");
   const nPassPending = document.getElementById("nav-passenger-pending-count");
   const pPassPendingTab = document.getElementById("passenger-pending-tab-count");
-  const pPassApprovedTab = document.getElementById(
-    "passenger-approved-tab-count",
-  );
-  const pPassRejectedTab = document.getElementById(
-    "passenger-rejected-tab-count",
-  );
+  const pPassApprovedTab = document.getElementById("passenger-approved-tab-count");
+  const pPassRejectedTab = document.getElementById("passenger-rejected-tab-count");
   const pPassAllTab = document.getElementById("passenger-all-tab-count");
 
   if (mPassPending) mPassPending.textContent = String(passengersPending);
@@ -840,6 +876,18 @@ function updateMetrics() {
   if (pPassApprovedTab) pPassApprovedTab.textContent = String(passengersApproved);
   if (pPassRejectedTab) pPassRejectedTab.textContent = String(passengersRejected);
   if (pPassAllTab) pPassAllTab.textContent = String(passageirosCache.length);
+
+  const nAltPending = document.getElementById("nav-alteration-pending-count");
+  const pAltPendingTab = document.getElementById("alteration-pending-tab-count");
+  const pAltApprovedTab = document.getElementById("alteration-approved-tab-count");
+  const pAltRejectedTab = document.getElementById("alteration-rejected-tab-count");
+  const pAltAllTab = document.getElementById("alteration-all-tab-count");
+
+  if (nAltPending) nAltPending.textContent = String(alterationsPending);
+  if (pAltPendingTab) pAltPendingTab.textContent = String(alterationsPending);
+  if (pAltApprovedTab) pAltApprovedTab.textContent = String(alterationsApproved);
+  if (pAltRejectedTab) pAltRejectedTab.textContent = String(alterationsRejected);
+  if (pAltAllTab) pAltAllTab.textContent = String(solicitacoesCache.length);
 }
 
 // --- VISÃO GERAL: SOLICITAÇÕES RECENTES UNIFICADAS ---
@@ -847,6 +895,9 @@ function renderOverviewApprovals() {
   const container = document.getElementById("recent-approvals");
   if (!container) return;
 
+  const pendingAlterations = solicitacoesCache
+    .filter((s) => s.status === "Pendente")
+    .slice(0, 3);
   const pendingPassengers = passageirosCache
     .filter((p) => p.status === "Pendente")
     .slice(0, 3);
@@ -854,13 +905,48 @@ function renderOverviewApprovals() {
     .filter((m) => m.status === "Pendente" || m.vehicle_status === "Pendente")
     .slice(0, 3);
 
-  if (pendingPassengers.length === 0 && pendingDrivers.length === 0) {
+  if (pendingAlterations.length === 0 && pendingPassengers.length === 0 && pendingDrivers.length === 0) {
     container.innerHTML =
       '<p class="loading-state"><i class="fas fa-check-circle" style="color:#268269;"></i> Nenhuma solicitação pendente no momento.</p>';
     return;
   }
 
   let html = "";
+
+  // 1. Alterações Cadastrais Pendentes no topo com destaque
+  pendingAlterations.forEach((s) => {
+    const userTypeLabel = s.tipo_usuario === "motorista" ? "Motorista" : "Passageiro";
+    const typeTag = s.tipo_alteracao === "empresa" ? "Empresa / Setor" :
+                    s.tipo_alteracao === "foto" ? "Foto de Perfil" :
+                    s.tipo_alteracao === "categoria" ? "Categoria" :
+                    s.tipo_alteracao === "veiculo" ? "Veículo" : "Dados Cadastrais";
+
+    html += `
+      <div class="approval-row" style="display:flex; justify-content:space-between; align-items:center; padding:12px; border-bottom:1px solid var(--line); background:#fffdfa;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div class="person-avatar" style="background:#ffedd5; color:#c2410c;">
+            <i class="fas fa-file-pen"></i>
+          </div>
+          <div>
+            <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+              <strong>${escapeHtml(s.usuario_nome)}</strong>
+              <span class="alteration-type-tag"><i class="fas fa-tag"></i> ${typeTag}</span>
+              <span class="alteration-badge-pending"><i class="fas fa-clock"></i> Alteração em Análise</span>
+            </div>
+            <small style="color:var(--ink-soft);">${escapeHtml(userTypeLabel)} · ${s.justificativa ? escapeHtml(s.justificativa) : "Solicitação de atualização via app"}</small>
+          </div>
+        </div>
+        <div style="display:flex; gap:6px; flex-shrink:0;">
+          <button class="btn btn-primary" style="padding:5px 10px; font-size:11px; min-height:28px; width:auto;" onclick="switchView('alterations')" title="Revisar Comparativo e Decidir">
+            <i class="fas fa-eye"></i> Revisar
+          </button>
+          <button class="btn btn-secondary" style="padding:5px 10px; font-size:11px; min-height:28px; width:auto;" onclick="aprovarAlteracao('${s.id}')" title="Aprovar e atualizar dados oficiais">
+            <i class="fas fa-check" style="color:var(--green);"></i>
+          </button>
+        </div>
+      </div>
+    `;
+  });
 
   // Passageiros Pendentes no topo
   pendingPassengers.forEach((p) => {
@@ -950,6 +1036,941 @@ function renderOverviewApprovals() {
   });
 
   container.innerHTML = html;
+}
+
+// --- ABA: SOLICITAÇÕES DE ALTERAÇÃO CADASTRAL (REGRA GERAL DO SISTEMA) ---
+function setupAlterationFilters() {
+  const searchInput = document.getElementById("search-alterations-input");
+  if (searchInput) {
+    searchInput.addEventListener("input", (e) => {
+      alterationSearchQuery = e.target.value.toLowerCase().trim();
+      renderSolicitacoes();
+    });
+  }
+
+  const typeSelect = document.getElementById("filter-alterations-user-type");
+  if (typeSelect) {
+    typeSelect.addEventListener("change", (e) => {
+      alterationUserTypeFilter = e.target.value;
+      renderSolicitacoes();
+    });
+  }
+
+  const btnOpenModal = document.getElementById("btn-open-alteration-modal");
+  if (btnOpenModal) {
+    btnOpenModal.addEventListener("click", () => openAlterationSimModal());
+  }
+
+  const quickBtnSim = document.getElementById("quick-btn-simulate-alteration");
+  if (quickBtnSim) {
+    quickBtnSim.addEventListener("click", () => openAlterationSimModal());
+  }
+}
+
+async function loadSolicitacoes() {
+  if (!supabaseClient) {
+    const localData = localStorage.getItem("sr_solicitacoes_cache");
+    solicitacoesCache = localData ? JSON.parse(localData) : getInitialSolicitacoesMock();
+    updateMetrics();
+    renderOverviewApprovals();
+    renderSolicitacoes();
+    return;
+  }
+  try {
+    const { data, error } = await supabaseClient
+      .from("solicitacoes_alteracao")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.warn(
+        "Aviso ao buscar solicitacoes_alteracao no Supabase:",
+        error.message,
+        "(utilizando armazenamento local de contingência)"
+      );
+      const localData = localStorage.getItem("sr_solicitacoes_cache");
+      solicitacoesCache = localData ? JSON.parse(localData) : getInitialSolicitacoesMock();
+    } else {
+      solicitacoesCache = data || [];
+      localStorage.setItem("sr_solicitacoes_cache", JSON.stringify(solicitacoesCache));
+    }
+  } catch (err) {
+    console.error("Erro ao carregar solicitacoes_alteracao:", err);
+    const localData = localStorage.getItem("sr_solicitacoes_cache");
+    solicitacoesCache = localData ? JSON.parse(localData) : getInitialSolicitacoesMock();
+  }
+
+  updateMetrics();
+  renderOverviewApprovals();
+  renderSolicitacoes();
+}
+
+function renderSolicitacoes() {
+  const container = document.getElementById("alterations-container");
+  if (!container) return;
+
+  let list = solicitacoesCache.slice();
+
+  // 1. Filtro de Abas
+  if (currentAlterationTab === "pending") {
+    list = list.filter((s) => s.status === "Pendente");
+  } else if (currentAlterationTab === "approved") {
+    list = list.filter((s) => s.status === "Aprovado");
+  } else if (currentAlterationTab === "rejected") {
+    list = list.filter((s) => s.status === "Rejeitado");
+  }
+
+  // 2. Filtro por tipo de usuário
+  if (alterationUserTypeFilter !== "all") {
+    list = list.filter((s) => s.tipo_usuario === alterationUserTypeFilter);
+  }
+
+  // 3. Filtro por busca textual
+  if (alterationSearchQuery) {
+    list = list.filter((s) => {
+      const uName = (s.usuario_nome || "").toLowerCase();
+      const just = (s.justificativa || "").toLowerCase();
+      const tipoAlt = (s.tipo_alteracao || "").toLowerCase();
+      const dadosAnt = JSON.stringify(s.dados_anteriores || {}).toLowerCase();
+      const dadosNov = JSON.stringify(s.dados_novos || {}).toLowerCase();
+      return (
+        uName.includes(alterationSearchQuery) ||
+        just.includes(alterationSearchQuery) ||
+        tipoAlt.includes(alterationSearchQuery) ||
+        dadosAnt.includes(alterationSearchQuery) ||
+        dadosNov.includes(alterationSearchQuery)
+      );
+    });
+  }
+
+  if (list.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state" style="padding:40px 20px; text-align:center;">
+        <i class="fas fa-file-circle-check" style="font-size:32px; color:var(--green); margin-bottom:10px; display:block;"></i>
+        <strong>Nenhuma solicitação de alteração cadastral encontrada.</strong>
+        <p style="color:var(--ink-soft); margin:5px 0 0; font-size:12px;">Todas as solicitações de motoristas e passageiros foram processadas ou a fila está vazia.</p>
+      </div>
+    `;
+    return;
+  }
+
+  let html = `
+    <table class="approval-table">
+      <thead>
+        <tr>
+          <th>Usuário & Perfil</th>
+          <th>Tipo de Alteração & Justificativa</th>
+          <th style="min-width:320px;">Comparativo: Dados Atuais vs Solicitados</th>
+          <th>Status / Envio</th>
+          <th style="text-align:right;">Decisão Administrativa</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  list.forEach((s) => {
+    const isPass = s.tipo_usuario === "passageiro";
+    const userObj = isPass
+      ? passageirosCache.find((p) => String(p.id) === String(s.usuario_id))
+      : motoristasCache.find((m) => String(m.id) === String(s.usuario_id));
+
+    const statusBadgeClass =
+      s.status === "Aprovado"
+        ? "approved"
+        : s.status === "Rejeitado"
+        ? "rejected"
+        : "pending";
+
+    const statusLabel =
+      s.status === "Aprovado"
+        ? "Homologado"
+        : s.status === "Rejeitado"
+        ? "Rejeitado"
+        : "Aguardando Aprovação";
+
+    const typeTagLabel =
+      s.tipo_alteracao === "empresa" ? "Empresa / Setor" :
+      s.tipo_alteracao === "foto" ? "Foto de Perfil" :
+      s.tipo_alteracao === "categoria" ? "Categoria" :
+      s.tipo_alteracao === "veiculo" ? "Veículo" :
+      s.tipo_alteracao === "contato" ? "Contatos" : "Geral";
+
+    const dateStr = s.created_at ? new Date(s.created_at).toLocaleString("pt-BR") : "—";
+    const diffHTML = renderDiffHTML(s.dados_anteriores, s.dados_novos, s.tipo_alteracao);
+
+    html += `
+      <tr>
+        <td>
+          <div style="display:flex; align-items:center; gap:10px;">
+            ${userObj ? renderAvatarHTML(userObj, s.tipo_usuario === 'motorista' ? 'driver' : 'passenger') : `
+              <div class="avatar-initials-thumb ${s.tipo_usuario === 'motorista' ? 'driver' : ''}">
+                ${(s.usuario_nome || 'U').charAt(0).toUpperCase()}
+              </div>
+            `}
+            <div>
+              <strong style="display:block; font-size:12.5px;">${escapeHtml(s.usuario_nome)}</strong>
+              <span class="tag-dept" style="font-size:9.5px;">${isPass ? '👤 Passageiro' : '🚗 Motorista'}</span>
+            </div>
+          </div>
+        </td>
+        <td>
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <span class="alteration-type-tag"><i class="fas fa-tag"></i> ${typeTagLabel}</span>
+            <small style="color:var(--ink-soft); font-size:11px; line-height:1.35;">
+              ${s.justificativa ? escapeHtml(s.justificativa) : 'Sem justificativa informada pelo usuário.'}
+            </small>
+          </div>
+        </td>
+        <td>
+          ${diffHTML}
+        </td>
+        <td>
+          <span class="status-badge ${statusBadgeClass}">${statusLabel}</span>
+          <small style="color:var(--ink-soft); display:block; margin-top:4px; font-size:10px;">${dateStr}</small>
+          ${s.analisado_por ? `<small style="color:var(--green); display:block; font-size:9px;">Por: ${escapeHtml(s.analisado_por)}</small>` : ''}
+          ${s.motivo_rejeicao ? `<small style="color:var(--red); display:block; font-size:9px; font-weight:700;">Motivo: ${escapeHtml(s.motivo_rejeicao)}</small>` : ''}
+        </td>
+        <td style="text-align:right;">
+          ${s.status === 'Pendente' ? `
+            <div style="display:flex; gap:6px; justify-content:flex-end;">
+              <button class="btn btn-primary" style="padding:6px 12px; font-size:11px; min-height:30px; width:auto;" onclick="aprovarAlteracao('${s.id}')" title="Aprovar e atualizar dados oficiais">
+                <i class="fas fa-check"></i> Aprovar Oficial
+              </button>
+              <button class="btn btn-secondary" style="padding:6px 10px; font-size:11px; min-height:30px; width:auto; color:var(--red); border-color:var(--red);" onclick="abrirModalRejeicao('${s.id}')" title="Reprovar alteração">
+                <i class="fas fa-ban"></i> Reprovar
+              </button>
+            </div>
+          ` : `
+            <span style="font-size:11px; color:var(--ink-soft); font-weight:700;">
+              <i class="fas ${s.status === 'Aprovado' ? 'fa-circle-check' : 'fa-circle-xmark'}"></i> Processado
+            </span>
+          `}
+        </td>
+      </tr>
+    `;
+  });
+
+  html += `
+      </tbody>
+    </table>
+  `;
+
+  container.innerHTML = html;
+}
+
+function renderDiffHTML(oldData, newData, tipoAlt) {
+  if (!oldData && !newData) return '<span style="color:var(--ink-soft);">Sem dados para comparar.</span>';
+  const o = oldData || {};
+  const n = newData || {};
+  const keys = Array.from(new Set([...Object.keys(o), ...Object.keys(n)]));
+  if (keys.length === 0) return '<span style="color:var(--ink-soft);">Nenhum campo modificado.</span>';
+
+  const labels = {
+    nome: "Nome",
+    nome_social: "Nome Social",
+    nome_completo: "Nome Completo",
+    empresa: "Empresa Conveniada",
+    setor: "Setor / Área",
+    matricula: "Matrícula",
+    turno: "Turno de Trabalho",
+    telefone: "Telefone / WhatsApp",
+    email: "E-mail",
+    cpf: "CPF",
+    categoria: "Categoria",
+    categoria_tipo: "Tipo de Categoria",
+    marca_veiculo: "Marca do Veículo",
+    modelo_veiculo: "Modelo",
+    placa_veiculo: "Placa",
+    cor_veiculo: "Cor",
+    foto_url: "Foto de Perfil"
+  };
+
+  let rowsHtml = "";
+  keys.forEach((k) => {
+    const valOld = o[k] !== undefined && o[k] !== null ? String(o[k]) : "—";
+    const valNew = n[k] !== undefined && n[k] !== null ? String(n[k]) : "—";
+    const fieldName = labels[k] || k;
+
+    if (k === "foto_url") {
+      rowsHtml += `
+        <div style="margin-bottom:6px;">
+          <strong style="font-size:10px; color:var(--ink-soft); text-transform:uppercase;">${fieldName}:</strong>
+          <div class="diff-box" style="margin-top:4px;">
+            <div class="diff-col">
+              <span class="diff-title"><i class="fas fa-image"></i> Atual Oficial</span>
+              ${valOld !== "—" ? `<img src="${escapeHtml(valOld)}" alt="Foto atual" style="width:46px; height:46px; border-radius:50%; object-fit:cover; border:2px solid var(--line);">` : '<span class="diff-val-old">Sem foto</span>'}
+            </div>
+            <div class="diff-col">
+              <span class="diff-title" style="color:var(--green);"><i class="fas fa-sparkles"></i> Nova Solicitada</span>
+              ${valNew !== "—" ? `<img src="${escapeHtml(valNew)}" alt="Nova foto" style="width:46px; height:46px; border-radius:50%; object-fit:cover; border:2px solid var(--green);">` : '<span class="diff-val-new">Sem foto</span>'}
+            </div>
+          </div>
+        </div>
+      `;
+    } else {
+      rowsHtml += `
+        <div style="margin-bottom:6px;">
+          <strong style="font-size:10px; color:var(--ink-soft); text-transform:uppercase;">${fieldName}:</strong>
+          <div class="diff-box" style="margin-top:2px;">
+            <div class="diff-col">
+              <span class="diff-title"><i class="fas fa-lock"></i> Atual Oficial</span>
+              <div class="diff-val-old">${escapeHtml(valOld)}</div>
+            </div>
+            <div class="diff-col">
+              <span class="diff-title" style="color:var(--green);"><i class="fas fa-pen"></i> Novo Solicitado</span>
+              <div class="diff-val-new">${escapeHtml(valNew)}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+  });
+
+  return rowsHtml;
+}
+
+// APROVAÇÃO OFICIAL DE ALTERAÇÃO CADASTRAL
+async function aprovarAlteracao(solicitacaoId) {
+  const item = solicitacoesCache.find((s) => String(s.id) === String(solicitacaoId));
+  if (!item) return;
+
+  if (!confirm(`Deseja homologar e aprovar a alteração cadastral para "${item.usuario_nome}"? Os dados oficiais serão atualizados imediatamente.`)) {
+    return;
+  }
+
+  try {
+    const novos = item.dados_novos || {};
+    let adminEmail = "Administrador SR";
+    if (supabaseClient && supabaseClient.auth) {
+      const { data: sessionData } = await supabaseClient.auth.getSession();
+      if (sessionData && sessionData.session && sessionData.session.user) {
+        adminEmail = sessionData.session.user.email || "Administrador SR";
+      }
+    }
+
+    // 1. Atualiza cache local de usuários oficiais
+    if (item.tipo_usuario === "passageiro") {
+      const p = passageirosCache.find((u) => String(u.id) === String(item.usuario_id));
+      if (p) {
+        Object.assign(p, novos);
+        if (novos.foto_url) p.foto_status = "Aprovada";
+        p.solicitacao_pendente = false;
+        p.updated_at = new Date().toISOString();
+      }
+      localStorage.setItem("sr_passageiros_cache", JSON.stringify(passageirosCache));
+    } else {
+      const m = motoristasCache.find((u) => String(u.id) === String(item.usuario_id));
+      if (m) {
+        Object.assign(m, novos);
+        if (novos.categoria_tipo || novos.categoria) {
+          const isEmpresa = (novos.categoria_tipo === "empresa" || novos.categoria === "Empresa");
+          m.categoria_tipo = isEmpresa ? "empresa" : "particular";
+          m.categoria = isEmpresa ? "Empresa" : "Particular";
+          m.recebe_voucher = true;
+          m.recebe_particular = !isEmpresa;
+        }
+        if (novos.foto_url) m.foto_status = "Aprovada";
+        m.solicitacao_pendente = false;
+        m.updated_at = new Date().toISOString();
+      }
+      localStorage.setItem("sr_motoristas_cache", JSON.stringify(motoristasCache));
+    }
+
+    // 2. Atualiza item no cache de solicitações
+    item.status = "Aprovado";
+    item.analisado_por = adminEmail;
+    item.analisado_em = new Date().toISOString();
+    item.updated_at = new Date().toISOString();
+    localStorage.setItem("sr_solicitacoes_cache", JSON.stringify(solicitacoesCache));
+
+    // 3. Atualiza no Supabase
+    if (supabaseClient) {
+      try {
+        const { error: rpcErr } = await supabaseClient.rpc("aprovar_solicitacao_alteracao", {
+          p_solicitacao_id: item.id,
+          p_admin_info: adminEmail
+        });
+
+        if (rpcErr) {
+          console.warn("RPC aprovar_solicitacao_alteracao não configurada, executando queries diretas:", rpcErr.message);
+          const targetTable = item.tipo_usuario === "passageiro" ? "passageiros" : "motoristas";
+          const updatePayload = { ...novos, solicitacao_pendente: false, updated_at: new Date().toISOString() };
+          if (novos.foto_url) updatePayload.foto_status = "Aprovada";
+
+          await supabaseClient.from(targetTable).update(updatePayload).eq("id", item.usuario_id);
+          await supabaseClient.from("solicitacoes_alteracao").update({
+            status: "Aprovado",
+            analisado_por: adminEmail,
+            analisado_em: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }).eq("id", item.id);
+        }
+      } catch (dbErr) {
+        console.warn("Aviso ao persistir aprovação no Supabase:", dbErr.message);
+      }
+    }
+
+    showNotification(`Alteração de "${item.usuario_nome}" homologada com sucesso! Os dados oficiais foram atualizados.`, "success");
+    updateMetrics();
+    renderOverviewApprovals();
+    renderSolicitacoes();
+    renderPassengerApprovals();
+    renderPassengersBase();
+    renderApprovals();
+    renderDrivers();
+  } catch (err) {
+    console.error("Erro ao aprovar alteração:", err);
+    showNotification("Erro ao homologar alteração: " + err.message, "error");
+  }
+}
+
+// REJEIÇÃO DE ALTERAÇÃO CADASTRAL
+function abrirModalRejeicao(solicitacaoId) {
+  const modal = document.getElementById("alteration-reject-modal");
+  const idInput = document.getElementById("alt-reject-id");
+  const reasonInput = document.getElementById("alt-reject-reason");
+  const feedback = document.getElementById("alt-reject-feedback");
+
+  if (idInput) idInput.value = solicitacaoId;
+  if (reasonInput) reasonInput.value = "";
+  if (feedback) {
+    feedback.textContent = "";
+    feedback.className = "feedback-msg";
+  }
+  if (modal) modal.classList.remove("hidden");
+}
+
+function setupAlterationRejectModal() {
+  const modal = document.getElementById("alteration-reject-modal");
+  const closeBtn = document.getElementById("close-alt-reject-modal");
+  const cancelBtn = document.getElementById("btn-cancel-alt-reject");
+  const form = document.getElementById("alt-reject-form");
+  const feedback = document.getElementById("alt-reject-feedback");
+
+  function fechar() {
+    if (modal) modal.classList.add("hidden");
+  }
+
+  if (closeBtn) closeBtn.addEventListener("click", fechar);
+  if (cancelBtn) cancelBtn.addEventListener("click", fechar);
+
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const id = document.getElementById("alt-reject-id").value;
+      const reason = document.getElementById("alt-reject-reason").value.trim();
+
+      if (!reason) {
+        if (feedback) {
+          feedback.textContent = "Informe a justificativa da recusa.";
+          feedback.className = "feedback-msg error";
+        }
+        return;
+      }
+
+      const item = solicitacoesCache.find((s) => String(s.id) === String(id));
+      if (!item) return;
+
+      try {
+        let adminEmail = "Administrador SR";
+        if (supabaseClient && supabaseClient.auth) {
+          const { data: sessionData } = await supabaseClient.auth.getSession();
+          if (sessionData && sessionData.session && sessionData.session.user) {
+            adminEmail = sessionData.session.user.email || "Administrador SR";
+          }
+        }
+
+        // Limpa flag de solicitação pendente no cache oficial
+        if (item.tipo_usuario === "passageiro") {
+          const p = passageirosCache.find((u) => String(u.id) === String(item.usuario_id));
+          if (p) p.solicitacao_pendente = false;
+          localStorage.setItem("sr_passageiros_cache", JSON.stringify(passageirosCache));
+        } else {
+          const m = motoristasCache.find((u) => String(u.id) === String(item.usuario_id));
+          if (m) m.solicitacao_pendente = false;
+          localStorage.setItem("sr_motoristas_cache", JSON.stringify(motoristasCache));
+        }
+
+        item.status = "Rejeitado";
+        item.motivo_rejeicao = reason;
+        item.analisado_por = adminEmail;
+        item.analisado_em = new Date().toISOString();
+        item.updated_at = new Date().toISOString();
+        localStorage.setItem("sr_solicitacoes_cache", JSON.stringify(solicitacoesCache));
+
+        if (supabaseClient) {
+          try {
+            const { error: rpcErr } = await supabaseClient.rpc("rejeitar_solicitacao_alteracao", {
+              p_solicitacao_id: item.id,
+              p_motivo: reason,
+              p_admin_info: adminEmail
+            });
+
+            if (rpcErr) {
+              const targetTable = item.tipo_usuario === "passageiro" ? "passageiros" : "motoristas";
+              await supabaseClient.from(targetTable).update({ solicitacao_pendente: false }).eq("id", item.usuario_id);
+              await supabaseClient.from("solicitacoes_alteracao").update({
+                status: "Rejeitado",
+                motivo_rejeicao: reason,
+                analisado_por: adminEmail,
+                analisado_em: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              }).eq("id", item.id);
+            }
+          } catch (dbErr) {
+            console.warn("Aviso ao persistir rejeição no Supabase:", dbErr.message);
+          }
+        }
+
+        showNotification(`Solicitação de alteração para "${item.usuario_nome}" foi reprovada. Dados oficiais mantidos.`, "warning");
+        fechar();
+        updateMetrics();
+        renderOverviewApprovals();
+        renderSolicitacoes();
+        renderPassengersBase();
+        renderDrivers();
+      } catch (err) {
+        console.error("Erro ao rejeitar alteração:", err);
+        if (feedback) {
+          feedback.textContent = "Erro ao rejeitar: " + err.message;
+          feedback.className = "feedback-msg error";
+        }
+      }
+    });
+  }
+}
+
+// MODAL DE SIMULAÇÃO DE ALTERAÇÃO PELO APP
+function openAlterationSimModal() {
+  const modal = document.getElementById("alteration-sim-modal");
+  const userTypeSelect = document.getElementById("alt-user-type");
+  const userSelect = document.getElementById("alt-user-select");
+  const altTypeSelect = document.getElementById("alt-type-select");
+  const feedback = document.getElementById("alteration-sim-feedback");
+  const justification = document.getElementById("alt-justification");
+
+  if (feedback) {
+    feedback.textContent = "";
+    feedback.className = "feedback-msg";
+  }
+  if (justification) justification.value = "";
+
+  populateSimUsersList();
+  renderAlterationFieldInputs();
+
+  if (modal) modal.classList.remove("hidden");
+}
+
+function populateSimUsersList() {
+  const userTypeSelect = document.getElementById("alt-user-type");
+  const userSelect = document.getElementById("alt-user-select");
+  if (!userTypeSelect || !userSelect) return;
+
+  const isPass = userTypeSelect.value === "passageiro";
+  let html = '<option value="">Selecione um usuário...</option>';
+
+  if (isPass) {
+    passageirosCache.forEach((p) => {
+      const name = p.nome_social || p.nome || "Passageiro";
+      const emp = p.empresa || "Sem empresa";
+      html += `<option value="${p.id}" data-type="passageiro">${escapeHtml(name)} (${escapeHtml(emp)})</option>`;
+    });
+  } else {
+    motoristasCache.forEach((m) => {
+      const name = m.nome_social || m.nome || "Motorista";
+      const cat = m.categoria || (m.categoria_tipo === "empresa" ? "Empresa" : "Particular");
+      html += `<option value="${m.id}" data-type="motorista">${escapeHtml(name)} [${cat}]</option>`;
+    });
+  }
+
+  userSelect.innerHTML = html;
+}
+
+function renderAlterationFieldInputs() {
+  const userTypeSelect = document.getElementById("alt-user-type");
+  const userSelect = document.getElementById("alt-user-select");
+  const altTypeSelect = document.getElementById("alt-type-select");
+  const container = document.getElementById("alt-fields-container");
+
+  if (!container || !userTypeSelect || !altTypeSelect) return;
+
+  const isPass = userTypeSelect.value === "passageiro";
+  const selectedUserId = userSelect ? userSelect.value : "";
+  const altType = altTypeSelect.value;
+
+  const currentUser = isPass
+    ? passageirosCache.find((p) => String(p.id) === String(selectedUserId))
+    : motoristasCache.find((m) => String(m.id) === String(selectedUserId));
+
+  let html = "";
+
+  if (altType === "empresa") {
+    const curEmp = (currentUser && currentUser.empresa) || "Nenhuma";
+    const curSet = (currentUser && currentUser.setor) || "Nenhum";
+    const curMat = (currentUser && currentUser.matricula) || "Nenhuma";
+
+    html = `
+      <div style="font-size:11px; margin-bottom:10px; color:var(--ink-soft);">
+        <strong>Dados Oficiais Atuais:</strong> Empresa: <em>${escapeHtml(curEmp)}</em> | Setor: <em>${escapeHtml(curSet)}</em> | Matrícula: <em>${escapeHtml(curMat)}</em>
+      </div>
+      <div class="form-group">
+        <label for="alt-new-empresa">Nova Empresa Conveniada *</label>
+        <select id="alt-new-empresa" required>
+          <option value="">Selecione a nova empresa...</option>
+          ${empresasCache.map((c) => `<option value="${escapeHtml(c.trade_name || c.name)}">${escapeHtml(c.trade_name || c.name)}</option>`).join("")}
+        </select>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="alt-new-setor">Novo Setor / Área</label>
+          <input type="text" id="alt-new-setor" placeholder="Ex: Engenharia / Logística">
+        </div>
+        <div class="form-group">
+          <label for="alt-new-matricula">Nova Matrícula</label>
+          <input type="text" id="alt-new-matricula" placeholder="Ex: MAT-12903">
+        </div>
+      </div>
+    `;
+  } else if (altType === "foto") {
+    html = `
+      <div class="form-group">
+        <label for="alt-new-foto-url">URL da Nova Foto de Perfil *</label>
+        <input type="url" id="alt-new-foto-url" placeholder="https://images.unsplash.com/..." required>
+        <small style="color:var(--ink-soft); display:block; margin-top:4px;">No app móvel, o usuário captura a foto da câmera ou galeria.</small>
+      </div>
+    `;
+  } else if (altType === "categoria") {
+    const curCat = (currentUser && (currentUser.categoria || currentUser.categoria_tipo)) || "Particular";
+    html = `
+      <div style="font-size:11px; margin-bottom:10px; color:var(--ink-soft);">
+        <strong>Categoria Atual:</strong> <em>${escapeHtml(curCat)}</em>
+      </div>
+      <div class="form-group">
+        <label for="alt-new-categoria">Nova Categoria de Motorista *</label>
+        <select id="alt-new-categoria" required>
+          <option value="particular">Motorista Particular (Atende corridas corporativas via voucher + particulares)</option>
+          <option value="empresa">Frota Empresa / Convênio Exclusivo (Apenas corridas corporativas via voucher)</option>
+        </select>
+      </div>
+    `;
+  } else if (altType === "veiculo") {
+    const curV = currentUser ? `${currentUser.marca_veiculo || ''} ${currentUser.modelo_veiculo || ''} (${currentUser.placa_veiculo || 'Sem placa'})` : 'Nenhum';
+    html = `
+      <div style="font-size:11px; margin-bottom:10px; color:var(--ink-soft);">
+        <strong>Veículo Atual:</strong> <em>${escapeHtml(curV)}</em>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="alt-new-marca">Marca do Veículo *</label>
+          <input type="text" id="alt-new-marca" placeholder="Ex: Toyota" required>
+        </div>
+        <div class="form-group">
+          <label for="alt-new-modelo">Modelo do Veículo *</label>
+          <input type="text" id="alt-new-modelo" placeholder="Ex: Corolla Cross" required>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="alt-new-placa">Placa do Veículo *</label>
+          <input type="text" id="alt-new-placa" placeholder="Ex: PHA-4E21" required>
+        </div>
+        <div class="form-group">
+          <label for="alt-new-cor">Cor do Veículo *</label>
+          <input type="text" id="alt-new-cor" placeholder="Ex: Prata" required>
+        </div>
+      </div>
+    `;
+  } else if (altType === "contato") {
+    const curTel = (currentUser && currentUser.telefone) || "Não inf.";
+    const curEmail = (currentUser && currentUser.email) || "Não inf.";
+    html = `
+      <div style="font-size:11px; margin-bottom:10px; color:var(--ink-soft);">
+        <strong>Contatos Atuais:</strong> Telefone: <em>${escapeHtml(curTel)}</em> | E-mail: <em>${escapeHtml(curEmail)}</em>
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="alt-new-telefone">Novo Telefone / WhatsApp</label>
+          <input type="text" id="alt-new-telefone" placeholder="(92) 9XXXX-XXXX">
+        </div>
+        <div class="form-group">
+          <label for="alt-new-email">Novo E-mail</label>
+          <input type="email" id="alt-new-email" placeholder="usuario@email.com">
+        </div>
+      </div>
+    `;
+  } else {
+    html = `
+      <div class="form-group">
+        <label for="alt-new-nome">Nome Completo / Social Solicitado</label>
+        <input type="text" id="alt-new-nome" placeholder="Nome atualizado">
+      </div>
+    `;
+  }
+
+  container.innerHTML = html;
+}
+
+function setupAlterationSimModal() {
+  const modal = document.getElementById("alteration-sim-modal");
+  const closeBtn = document.getElementById("close-alteration-sim-modal");
+  const cancelBtn = document.getElementById("btn-cancel-alt-modal");
+  const userTypeSelect = document.getElementById("alt-user-type");
+  const userSelect = document.getElementById("alt-user-select");
+  const altTypeSelect = document.getElementById("alt-type-select");
+  const form = document.getElementById("alteration-sim-form");
+  const feedback = document.getElementById("alteration-sim-feedback");
+
+  function fechar() {
+    if (modal) modal.classList.add("hidden");
+  }
+
+  if (closeBtn) closeBtn.addEventListener("click", fechar);
+  if (cancelBtn) cancelBtn.addEventListener("click", fechar);
+
+  if (userTypeSelect) {
+    userTypeSelect.addEventListener("change", () => {
+      populateSimUsersList();
+      renderAlterationFieldInputs();
+    });
+  }
+
+  if (userSelect) {
+    userSelect.addEventListener("change", () => {
+      renderAlterationFieldInputs();
+    });
+  }
+
+  if (altTypeSelect) {
+    altTypeSelect.addEventListener("change", () => {
+      renderAlterationFieldInputs();
+    });
+  }
+
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const userType = userTypeSelect.value;
+      const userId = userSelect.value;
+      const altType = altTypeSelect.value;
+      const just = document.getElementById("alt-justification").value.trim();
+
+      if (!userId) {
+        if (feedback) {
+          feedback.textContent = "Selecione um usuário cadastrado.";
+          feedback.className = "feedback-msg error";
+        }
+        return;
+      }
+
+      const currentUser = userType === "passageiro"
+        ? passageirosCache.find((p) => String(p.id) === String(userId))
+        : motoristasCache.find((m) => String(m.id) === String(userId));
+
+      if (!currentUser) {
+        if (feedback) {
+          feedback.textContent = "Usuário não localizado no cache.";
+          feedback.className = "feedback-msg error";
+        }
+        return;
+      }
+
+      const userName = currentUser.nome_social || currentUser.nome || (userType === "passageiro" ? "Passageiro" : "Motorista");
+
+      // Monta dados_anteriores e dados_novos
+      let dadosAnteriores = {};
+      let dadosNovos = {};
+
+      if (altType === "empresa") {
+        const newEmp = document.getElementById("alt-new-empresa") ? document.getElementById("alt-new-empresa").value : "";
+        const newSet = document.getElementById("alt-new-setor") ? document.getElementById("alt-new-setor").value : "";
+        const newMat = document.getElementById("alt-new-matricula") ? document.getElementById("alt-new-matricula").value : "";
+
+        if (!newEmp) {
+          if (feedback) {
+            feedback.textContent = "Selecione a nova empresa.";
+            feedback.className = "feedback-msg error";
+          }
+          return;
+        }
+
+        dadosAnteriores = {
+          empresa: currentUser.empresa || "",
+          setor: currentUser.setor || "",
+          matricula: currentUser.matricula || ""
+        };
+        dadosNovos = {
+          empresa: newEmp,
+          setor: newSet || currentUser.setor || "",
+          matricula: newMat || currentUser.matricula || ""
+        };
+      } else if (altType === "foto") {
+        const newFoto = document.getElementById("alt-new-foto-url") ? document.getElementById("alt-new-foto-url").value.trim() : "";
+        if (!newFoto) {
+          if (feedback) {
+            feedback.textContent = "Informe a URL da nova foto.";
+            feedback.className = "feedback-msg error";
+          }
+          return;
+        }
+        dadosAnteriores = { foto_url: currentUser.foto_url || currentUser.avatar_url || "" };
+        dadosNovos = { foto_url: newFoto, avatar_url: newFoto };
+      } else if (altType === "categoria") {
+        const newCatVal = document.getElementById("alt-new-categoria") ? document.getElementById("alt-new-categoria").value : "particular";
+        const isEmp = newCatVal === "empresa";
+        dadosAnteriores = {
+          categoria_tipo: currentUser.categoria_tipo || "particular",
+          categoria: currentUser.categoria || "Particular"
+        };
+        dadosNovos = {
+          categoria_tipo: isEmp ? "empresa" : "particular",
+          categoria: isEmp ? "Empresa" : "Particular",
+          recebe_voucher: true,
+          recebe_particular: !isEmp
+        };
+      } else if (altType === "veiculo") {
+        const newMarca = document.getElementById("alt-new-marca") ? document.getElementById("alt-new-marca").value.trim() : "";
+        const newModelo = document.getElementById("alt-new-modelo") ? document.getElementById("alt-new-modelo").value.trim() : "";
+        const newPlaca = document.getElementById("alt-new-placa") ? document.getElementById("alt-new-placa").value.trim().toUpperCase() : "";
+        const newCor = document.getElementById("alt-new-cor") ? document.getElementById("alt-new-cor").value.trim() : "";
+
+        if (!newMarca || !newModelo || !newPlaca) {
+          if (feedback) {
+            feedback.textContent = "Preencha os campos obrigatórios do veículo.";
+            feedback.className = "feedback-msg error";
+          }
+          return;
+        }
+
+        dadosAnteriores = {
+          marca_veiculo: currentUser.marca_veiculo || "",
+          modelo_veiculo: currentUser.modelo_veiculo || "",
+          placa_veiculo: currentUser.placa_veiculo || "",
+          cor_veiculo: currentUser.cor_veiculo || ""
+        };
+        dadosNovos = {
+          marca_veiculo: newMarca,
+          modelo_veiculo: newModelo,
+          placa_veiculo: newPlaca,
+          cor_veiculo: newCor || currentUser.cor_veiculo || ""
+        };
+      } else if (altType === "contato") {
+        const newTel = document.getElementById("alt-new-telefone") ? document.getElementById("alt-new-telefone").value.trim() : "";
+        const newEmail = document.getElementById("alt-new-email") ? document.getElementById("alt-new-email").value.trim() : "";
+        dadosAnteriores = {
+          telefone: currentUser.telefone || "",
+          email: currentUser.email || ""
+        };
+        dadosNovos = {
+          telefone: newTel || currentUser.telefone || "",
+          email: newEmail || currentUser.email || ""
+        };
+      } else {
+        const newNome = document.getElementById("alt-new-nome") ? document.getElementById("alt-new-nome").value.trim() : "";
+        dadosAnteriores = { nome: currentUser.nome || currentUser.nome_social || "" };
+        dadosNovos = { nome: newNome || currentUser.nome || "" };
+      }
+
+      const novaSolicitacao = {
+        id: "solic-" + Date.now(),
+        tipo_usuario: userType,
+        usuario_id: userId,
+        usuario_nome: userName,
+        tipo_alteracao: altType,
+        dados_anteriores: dadosAnteriores,
+        dados_novos: dadosNovos,
+        justificativa: just || "Solicitação de atualização via aplicativo",
+        status: "Pendente",
+        created_at: new Date().toISOString()
+      };
+
+      // Marca flag no usuário no cache oficial
+      currentUser.solicitacao_pendente = true;
+      if (userType === "passageiro") {
+        localStorage.setItem("sr_passageiros_cache", JSON.stringify(passageirosCache));
+      } else {
+        localStorage.setItem("sr_motoristas_cache", JSON.stringify(motoristasCache));
+      }
+
+      solicitacoesCache.unshift(novaSolicitacao);
+      localStorage.setItem("sr_solicitacoes_cache", JSON.stringify(solicitacoesCache));
+
+      // Persiste no Supabase
+      if (supabaseClient) {
+        try {
+          const insertPayload = {
+            tipo_usuario: userType,
+            usuario_id: userId,
+            usuario_nome: userName,
+            tipo_alteracao: altType,
+            dados_anteriores: dadosAnteriores,
+            dados_novos: dadosNovos,
+            justificativa: just || "Solicitação de atualização via aplicativo",
+            status: "Pendente"
+          };
+          await supabaseClient.from("solicitacoes_alteracao").insert([insertPayload]);
+          const targetTable = userType === "passageiro" ? "passageiros" : "motoristas";
+          await supabaseClient.from(targetTable).update({ solicitacao_pendente: true }).eq("id", userId);
+        } catch (dbErr) {
+          console.warn("Aviso ao inserir solicitacao no Supabase:", dbErr.message);
+        }
+      }
+
+      showNotification(`Solicitação enviada com sucesso! Status: "Aguardando aprovação". Os dados oficiais permanecem inalterados até moderação.`, "info");
+      fechar();
+      updateMetrics();
+      renderOverviewApprovals();
+      renderSolicitacoes();
+      renderPassengersBase();
+      renderDrivers();
+    });
+  }
+}
+
+function getInitialSolicitacoesMock() {
+  return [
+    {
+      id: "solic-01",
+      tipo_usuario: "passageiro",
+      usuario_id: "demo-pass-01",
+      usuario_nome: "Ana Beatriz Costa",
+      tipo_alteracao: "empresa",
+      dados_anteriores: {
+        empresa: "Samsung Eletrônica da Amazônia",
+        setor: "Montagem / Produção",
+        matricula: "SAM-8890"
+      },
+      dados_novos: {
+        empresa: "Cal-Comp Indústria da Amazônia",
+        setor: "Engenharia de Processos",
+        matricula: "CC-10442"
+      },
+      justificativa: "Transferência de empresa no polo industrial com início de novo contrato.",
+      status: "Pendente",
+      created_at: new Date(Date.now() - 2 * 3600 * 1000).toISOString()
+    },
+    {
+      id: "solic-02",
+      tipo_usuario: "motorista",
+      usuario_id: "drv-01",
+      usuario_nome: "Silvio Ramos Martins",
+      tipo_alteracao: "veiculo",
+      dados_anteriores: {
+        marca_veiculo: "Toyota",
+        modelo_veiculo: "Corolla XEi",
+        placa_veiculo: "PHA-4E21",
+        cor_veiculo: "Prata"
+      },
+      dados_novos: {
+        marca_veiculo: "Toyota",
+        modelo_veiculo: "Corolla Cross XRE",
+        placa_veiculo: "SRL-9A88",
+        cor_veiculo: "Branco Pérola"
+      },
+      justificativa: "Troca do veículo de atendimento operacional por modelo mais novo.",
+      status: "Pendente",
+      created_at: new Date(Date.now() - 5 * 3600 * 1000).toISOString()
+    }
+  ];
 }
 
 // --- ABA: APROVAÇÕES DE PASSAGEIROS ---
@@ -1084,11 +2105,12 @@ function renderPassengerApprovals() {
           ${renderAvatarHTML(p, "passenger")}
         </td>
         <td style="padding:14px 16px;">
-          <div style="display:flex; align-items:center; gap:6px;">
+          <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
             <strong>${escapeHtml(p.nome_social || p.nome)}</strong>
             <span class="photo-status-badge ${photoStatus === 'Aprovada' ? 'approved' : photoStatus === 'Rejeitada' ? 'rejected' : 'pending'}">
               <i class="fas fa-camera"></i> ${photoStatus === 'Aprovada' ? 'Foto Aprovada' : photoStatus === 'Rejeitada' ? 'Foto Reprovada' : 'Foto em Análise'}
             </span>
+            ${p.solicitacao_pendente ? `<span class="alteration-badge-pending" title="Solicitação de alteração cadastral em análise"><i class="fas fa-file-pen"></i> Alteração em Análise</span>` : ''}
           </div>
           <small style="color:var(--ink-soft); display:block;">${escapeHtml(p.nome_completo || p.nome || "")}</small>
           <small style="color:#788b90; display:block;">CPF: ${escapeHtml(p.cpf || "Não inf.")}</small>
@@ -1198,11 +2220,12 @@ function renderPassengersBase() {
           <span class="status-badge approved" style="margin-left:auto;">Homologado</span>
         </div>
 
-        <div style="margin-bottom:10px;">
+        <div style="margin-bottom:10px; display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
           <span class="voucher-status-tag unlocked"><i class="fas fa-ticket"></i> Voucher Corporativo Liberado</span>
-          <span class="photo-status-badge ${photoStatus === 'Aprovada' ? 'approved' : photoStatus === 'Rejeitada' ? 'rejected' : 'pending'}" style="margin-left:4px;">
+          <span class="photo-status-badge ${photoStatus === 'Aprovada' ? 'approved' : photoStatus === 'Rejeitada' ? 'rejected' : 'pending'}">
             <i class="fas fa-camera"></i> ${photoStatus === 'Aprovada' ? 'Foto Aprovada' : photoStatus === 'Rejeitada' ? 'Foto Reprovada' : 'Foto Pendente'}
           </span>
+          ${p.solicitacao_pendente ? `<span class="alteration-badge-pending" title="Solicitação de alteração cadastral em análise"><i class="fas fa-file-pen"></i> Alteração em Análise</span>` : ''}
         </div>
 
         <div style="border-top:1px solid var(--line); padding-top:12px; font-size:12px; color:var(--ink); line-height:1.7;">
@@ -1569,12 +2592,14 @@ function renderApprovals() {
       renderAvatarHTML(m, "driver") +
       '  </td>';
     html +=
-      '  <td style="padding:10px;"><div style="display:flex; align-items:center; gap:6px;"><strong>' +
+      '  <td style="padding:10px;"><div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;"><strong>' +
       escapeHtml(m.nome_social || m.nome) +
       '</strong>' +
       '<span class="photo-status-badge ' + (photoStatus === 'Aprovada' ? 'approved' : photoStatus === 'Rejeitada' ? 'rejected' : 'pending') + '"><i class="fas fa-camera"></i> ' +
       (photoStatus === 'Aprovada' ? 'Foto OK' : photoStatus === 'Rejeitada' ? 'Foto Reprovada' : 'Foto Pendente') +
-      '</span></div><small style="color:var(--ink-soft);">' +
+      '</span>' +
+      (m.solicitacao_pendente ? '<span class="alteration-badge-pending" title="Solicitação de alteração cadastral em análise"><i class="fas fa-file-pen"></i> Alteração em Análise</span>' : '') +
+      '</div><small style="color:var(--ink-soft);">' +
       escapeHtml(m.nome_completo || m.nome || "") +
       '</small><br><small style="color:#788b90">CPF: ' +
       escapeHtml(m.cpf || "—") +
@@ -1699,10 +2724,11 @@ function renderDrivers() {
           </span>
         </div>
 
-        <div style="margin-bottom:8px;">
+        <div style="margin-bottom:8px; display:flex; align-items:center; gap:4px; flex-wrap:wrap;">
           <span class="photo-status-badge ${photoStatus === 'Aprovada' ? 'approved' : photoStatus === 'Rejeitada' ? 'rejected' : 'pending'}">
             <i class="fas fa-camera"></i> ${photoStatus === 'Aprovada' ? 'Foto Aprovada' : photoStatus === 'Rejeitada' ? 'Foto Reprovada' : 'Foto Pendente'}
           </span>
+          ${m.solicitacao_pendente ? `<span class="alteration-badge-pending" title="Solicitação de alteração cadastral em análise"><i class="fas fa-file-pen"></i> Alteração em Análise</span>` : ''}
         </div>
 
         <div class="driver-detail" style="font-size:12px; line-height:1.7;">
