@@ -67,6 +67,46 @@ if (supabaseClient && supabaseClient.auth) {
   });
 }
 
+// Sincronização em tempo real via Supabase Realtime
+function setupRealtimeSubscriptions() {
+  if (!supabaseClient || typeof supabaseClient.channel !== "function") return;
+  try {
+    supabaseClient
+      .channel("admin-realtime-sync")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "passageiros" },
+        () => {
+          loadPassageiros();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "profiles" },
+        () => {
+          loadPassageiros();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "motoristas" },
+        () => {
+          loadMotoristas();
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "solicitacoes_alteracao" },
+        () => {
+          loadSolicitacoes();
+        }
+      )
+      .subscribe();
+  } catch (err) {
+    console.warn("Aviso ao inicializar Realtime sync:", err);
+  }
+}
+
 // Inicialização ao carregar o DOM
 document.addEventListener("DOMContentLoaded", () => {
   setupNavigation();
@@ -83,6 +123,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupAlterationFilters();
   setupAlterationSimModal();
   setupAlterationRejectModal();
+  setupRealtimeSubscriptions();
   checkSession();
 });
 
@@ -97,14 +138,18 @@ let currentPhotoInspection = {
 
 function getAvatarUrl(item) {
   if (!item) return null;
-  return (
+  const url = (
     item.foto_url ||
     item.avatar_url ||
     item.avatar ||
     item.foto ||
-    (item.user_metadata && item.user_metadata.avatar_url) ||
+    (item.user_metadata && (item.user_metadata.avatar_url || item.user_metadata.avatar || item.user_metadata.foto_url || item.user_metadata.picture)) ||
     null
   );
+  if (typeof url === "string" && url.trim().length > 5) {
+    return url.trim();
+  }
+  return null;
 }
 
 function renderAvatarHTML(item, type = "passenger") {
@@ -227,10 +272,18 @@ function setupPhotoModal() {
           }
           localStorage.setItem("sr_passageiros_cache", JSON.stringify(passageirosCache));
           if (supabaseClient) {
-            await supabaseClient
-              .from("passageiros")
-              .update({ foto_status: "Aprovada", updated_at: new Date().toISOString() })
-              .eq("id", id);
+            try {
+              await supabaseClient
+                .from("passageiros")
+                .update({ foto_status: "Aprovada", updated_at: new Date().toISOString() })
+                .eq("id", id);
+            } catch (_) {}
+            try {
+              await supabaseClient
+                .from("profiles")
+                .update({ foto_status: "Aprovada", photo_status: "approved", updated_at: new Date().toISOString() })
+                .eq("id", id);
+            } catch (_) {}
           }
           renderOverviewApprovals();
           renderPassengerApprovals();
@@ -264,19 +317,40 @@ function setupPhotoModal() {
     rejectBtn.addEventListener("click", async () => {
       if (!currentPhotoInspection.id) return;
       const { id, type } = currentPhotoInspection;
+      const reason = prompt(
+        "Informe o motivo da recusa da foto para o usuário:",
+        "Foto fora do enquadramento ou ilegível. Por favor, reenvie uma foto nítida e centralizada do rosto."
+      );
+      if (reason === null) return;
+
       try {
         if (type === "passenger") {
           const p = passageirosCache.find((item) => String(item.id) === String(id));
           if (p) {
             p.foto_status = "Rejeitada";
+            p.motivo_rejeicao = reason;
             p.updated_at = new Date().toISOString();
           }
           localStorage.setItem("sr_passageiros_cache", JSON.stringify(passageirosCache));
           if (supabaseClient) {
-            await supabaseClient
-              .from("passageiros")
-              .update({ foto_status: "Rejeitada", updated_at: new Date().toISOString() })
-              .eq("id", id);
+            try {
+              await supabaseClient
+                .from("passageiros")
+                .update({ foto_status: "Rejeitada", motivo_rejeicao: reason, updated_at: new Date().toISOString() })
+                .eq("id", id);
+            } catch (_) {}
+            try {
+              await supabaseClient
+                .from("profiles")
+                .update({
+                  foto_status: "Rejeitada",
+                  photo_status: "rejected",
+                  motivo_rejeicao: reason,
+                  rejection_reason: reason,
+                  updated_at: new Date().toISOString()
+                })
+                .eq("id", id);
+            } catch (_) {}
           }
           renderOverviewApprovals();
           renderPassengerApprovals();
@@ -285,13 +359,14 @@ function setupPhotoModal() {
           const m = motoristasCache.find((item) => String(item.id) === String(id));
           if (m) {
             m.foto_status = "Rejeitada";
+            m.motivo_rejeicao = reason;
             m.updated_at = new Date().toISOString();
           }
           localStorage.setItem("sr_motoristas_cache", JSON.stringify(motoristasCache));
           if (supabaseClient) {
             await supabaseClient
               .from("motoristas")
-              .update({ foto_status: "Rejeitada", updated_at: new Date().toISOString() })
+              .update({ foto_status: "Rejeitada", motivo_rejeicao: reason, updated_at: new Date().toISOString() })
               .eq("id", id);
           }
           renderOverviewApprovals();
@@ -655,30 +730,129 @@ async function loadAllData() {
   ]);
 }
 
-// --- PASSAGEIROS: CARREGAMENTO & CACHE ---
+// --- PASSAGEIROS: CARREGAMENTO & CACHE UNIFICADO ---
 async function loadPassageiros() {
   if (!supabaseClient) return;
   try {
-    const { data, error } = await supabaseClient
+    // 1. Busca da tabela oficial 'passageiros'
+    const { data: passData, error: passError } = await supabaseClient
       .from("passageiros")
       .select("*")
       .order("created_at", { ascending: false });
 
-    if (error) {
-      // Caso a tabela ainda não tenha sido criada no Supabase SQL Editor
-      console.warn(
-        "Aviso ao consultar tabela 'passageiros':",
-        error.message,
-        "(Utilizando armazenamento local de contingência)",
-      );
+    if (passError) {
+      console.warn("Aviso ao consultar tabela 'passageiros':", passError.message);
+    }
+
+    // 2. Busca também da tabela 'profiles' (onde cadastros do app e Next.js Auth são registrados)
+    let profData = [];
+    try {
+      const { data: pData, error: profError } = await supabaseClient
+        .from("profiles")
+        .select("*");
+      if (!profError && pData) {
+        profData = pData.filter((p) => p.role !== "driver");
+      }
+    } catch (errP) {
+      console.warn("Aviso ao consultar tabela 'profiles':", errP);
+    }
+
+    const passMap = new Map();
+
+    // Indexa registros da tabela passageiros
+    if (passData && Array.isArray(passData)) {
+      passData.forEach((p) => {
+        const key = String(p.id || p.email || ("pass_" + Math.random()));
+        passMap.set(key, { ...p });
+      });
+    }
+
+    // Mescla com a tabela profiles garantindo foto, status e metadados
+    if (profData && Array.isArray(profData)) {
+      profData.forEach((prof) => {
+        const keyId = prof.id ? String(prof.id) : null;
+        const keyEmail = prof.email ? String(prof.email).toLowerCase().trim() : null;
+
+        let matchedKey = null;
+        if (keyId && passMap.has(keyId)) {
+          matchedKey = keyId;
+        } else if (keyEmail) {
+          for (const [k, v] of passMap.entries()) {
+            if (v.email && String(v.email).toLowerCase().trim() === keyEmail) {
+              matchedKey = k;
+              break;
+            }
+          }
+        }
+
+        const resolvedAvatar =
+          prof.avatar_url ||
+          prof.foto_url ||
+          prof.avatar ||
+          prof.foto ||
+          (prof.user_metadata && (prof.user_metadata.avatar_url || prof.user_metadata.avatar || prof.user_metadata.foto_url || prof.user_metadata.picture)) ||
+          null;
+
+        const resolvedFotoStatus =
+          prof.foto_status ||
+          (prof.photo_status === "approved"
+            ? "Aprovada"
+            : prof.photo_status === "rejected"
+            ? "Rejeitada"
+            : (resolvedAvatar ? "Pendente" : "Pendente"));
+
+        if (matchedKey) {
+          const existing = passMap.get(matchedKey);
+          passMap.set(matchedKey, {
+            ...existing,
+            foto_url: existing.foto_url || resolvedAvatar || existing.avatar_url,
+            avatar_url: existing.avatar_url || resolvedAvatar || existing.foto_url,
+            foto: existing.foto || resolvedAvatar,
+            avatar: existing.avatar || resolvedAvatar,
+            foto_status: existing.foto_status || resolvedFotoStatus,
+            motivo_rejeicao: existing.motivo_rejeicao || prof.motivo_rejeicao || prof.rejection_reason || null,
+            nome: existing.nome || prof.name || prof.nome || "Passageiro",
+            nome_social: existing.nome_social || (prof.name || prof.nome || "").split(" ")[0] || "Passageiro",
+            nome_completo: existing.nome_completo || prof.name || prof.nome || "",
+            telefone: existing.telefone || prof.phone || prof.telefone || "",
+            empresa: existing.empresa || prof.company || prof.corporate_company || "Particular",
+            setor: existing.setor || prof.department || "Operações",
+            cpf: existing.cpf || "Não informado"
+          });
+        } else if (keyId || keyEmail) {
+          const newKey = keyId || keyEmail;
+          passMap.set(newKey, {
+            id: prof.id || ("pass_" + Date.now()),
+            nome: prof.name || prof.nome || (prof.email ? prof.email.split("@")[0] : "Passageiro"),
+            nome_social: (prof.name || prof.nome || "").split(" ")[0] || "Passageiro",
+            nome_completo: prof.name || prof.nome || "",
+            telefone: prof.phone || prof.telefone || "",
+            email: prof.email || "",
+            empresa: prof.company || prof.corporate_company || "Particular",
+            setor: prof.department || "Operações",
+            matricula: "Padrão",
+            turno: "Padrão",
+            cpf: prof.cpf || "Não informado",
+            foto_url: resolvedAvatar,
+            avatar_url: resolvedAvatar,
+            foto: resolvedAvatar,
+            avatar: resolvedAvatar,
+            foto_status: resolvedFotoStatus,
+            motivo_rejeicao: prof.motivo_rejeicao || prof.rejection_reason || null,
+            status: prof.status === "active" || prof.is_approved ? "Aprovado" : (prof.status === "blocked" ? "Reprovado" : "Pendente"),
+            origem: "App Passageiro",
+            created_at: prof.created_at || new Date().toISOString()
+          });
+        }
+      });
+    }
+
+    if (passMap.size > 0) {
+      passageirosCache = Array.from(passMap.values());
+      localStorage.setItem("sr_passageiros_cache", JSON.stringify(passageirosCache));
+    } else {
       const localData = localStorage.getItem("sr_passageiros_cache");
       passageirosCache = localData ? JSON.parse(localData) : getInitialPassengersMock();
-    } else {
-      passageirosCache = data || [];
-      localStorage.setItem(
-        "sr_passageiros_cache",
-        JSON.stringify(passageirosCache),
-      );
     }
   } catch (err) {
     console.error("Erro ao carregar passageiros:", err);
@@ -2265,17 +2439,32 @@ window.approvePassenger = async function (id) {
 
   try {
     if (supabaseClient) {
-      const { error } = await supabaseClient
-        .from("passageiros")
-        .update({
-          status: "Aprovado",
-          foto_status: "Aprovada",
-          voucher_habilitado: true,
-          updated_at: new Date().toISOString()
-        })
-        .eq("id", id);
+      try {
+        await supabaseClient
+          .from("passageiros")
+          .update({
+            status: "Aprovado",
+            foto_status: "Aprovada",
+            voucher_habilitado: true,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", id);
+      } catch (_) {}
 
-      if (error && error.code !== "PGRST205") throw error;
+      try {
+        await supabaseClient
+          .from("profiles")
+          .update({
+            status: "active",
+            is_approved: true,
+            approved: true,
+            foto_status: "Aprovada",
+            photo_status: "approved",
+            voucher_habilitado: true,
+            updated_at: new Date().toISOString()
+          })
+          .eq("id", id);
+      } catch (_) {}
     }
 
     // Atualiza cache local
@@ -2307,17 +2496,32 @@ window.rejectPassenger = async function (id) {
 
   try {
     if (supabaseClient) {
-      const { error } = await supabaseClient
-        .from("passageiros")
-        .update({
-          status: "Reprovado",
-          voucher_habilitado: false,
-          motivo_rejeicao: reason,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", id);
+      try {
+        await supabaseClient
+          .from("passageiros")
+          .update({
+            status: "Reprovado",
+            voucher_habilitado: false,
+            motivo_rejeicao: reason,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", id);
+      } catch (_) {}
 
-      if (error && error.code !== "PGRST205") throw error;
+      try {
+        await supabaseClient
+          .from("profiles")
+          .update({
+            status: "blocked",
+            is_approved: false,
+            approved: false,
+            voucher_habilitado: false,
+            motivo_rejeicao: reason,
+            rejection_reason: reason,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", id);
+      } catch (_) {}
     }
 
     // Atualiza cache local
